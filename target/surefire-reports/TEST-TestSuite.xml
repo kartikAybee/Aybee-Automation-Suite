@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="TestSuite" time="66.69" tests="2" errors="0" skipped="0" failures="0">
+  <properties>
+    <property name="java.specification.version" value="25"/>
+    <property name="webdriver.chrome.driver" value="/Users/kartik/Documents/bin/chromedriver"/>
+    <property name="sun.jnu.encoding" value="UTF-8"/>
+    <property name="java.class.path" value="/Users/kartik/Desktop/aybee-selenium/target/test-classes:/Users/kartik/Desktop/aybee-selenium/target/classes:/Users/kartik/.m2/repository/org/seleniumhq/selenium/selenium-java/3.7.1/selenium-java-3.7.1.jar:/Users/kartik/.m2/repository/org/seleniumhq/selenium/selenium-api/3.7.1/selenium-api-3.7.1.jar:/Users/kartik/.m2/repository/org/seleniumhq/selenium/selenium-chrome-driver/3.7.1/selenium-chrome-driver-3.7.1.jar:/Users/kartik/.m2/repository/org/seleniumhq/selenium/selenium-edge-driver/3.7.1/selenium-edge-driver-3.7.1.jar:/Users/kartik/.m2/repository/org/seleniumhq/selenium/selenium-firefox-driver/3.7.1/selenium-firefox-driver-3.7.1.jar:/Users/kartik/.m2/repository/org/seleniumhq/selenium/selenium-ie-driver/3.7.1/selenium-ie-driver-3.7.1.jar:/Users/kartik/.m2/repository/org/seleniumhq/selenium/selenium-opera-driver/3.7.1/selenium-opera-driver-3.7.1.jar:/Users/kartik/.m2/repository/org/seleniumhq/selenium/selenium-remote-driver/3.7.1/selenium-remote-driver-3.7.1.jar:/Users/kartik/.m2/repository/org/seleniumhq/selenium/selenium-safari-driver/3.7.1/selenium-safari-driver-3.7.1.jar:/Users/kartik/.m2/repository/org/seleniumhq/selenium/selenium-support/3.7.1/selenium-support-3.7.1.jar:/Users/kartik/.m2/repository/net/bytebuddy/byte-buddy/1.7.5/byte-buddy-1.7.5.jar:/Users/kartik/.m2/repository/org/apache/commons/commons-exec/1.3/commons-exec-1.3.jar:/Users/kartik/.m2/repository/commons-codec/commons-codec/1.10/commons-codec-1.10.jar:/Users/kartik/.m2/repository/commons-logging/commons-logging/1.2/commons-logging-1.2.jar:/Users/kartik/.m2/repository/com/google/code/gson/gson/2.8.2/gson-2.8.2.jar:/Users/kartik/.m2/repository/org/apache/httpcomponents/httpclient/4.5.3/httpclient-4.5.3.jar:/Users/kartik/.m2/repository/org/apache/httpcomponents/httpcore/4.4.6/httpcore-4.4.6.jar:/Users/kartik/.m2/repository/io/cucumber/cucumber-java/7.14.0/cucumber-java-7.14.0.jar:/Users/kartik/.m2/repository/io/cucumber/cucumber-core/7.14.0/cucumber-core-7.14.0.jar:/Users/kartik/.m2/repository/io/cucumber/cucumber-gherkin/7.14.0/cucumber-gherkin-7.14.0.jar:/Users/kartik/.m2/repository/io/cucumber/cucumber-gherkin-messages/7.14.0/cucumber-gherkin-messages-7.14.0.jar:/Users/kartik/.m2/repository/io/cucumber/messages/22.0.0/messages-22.0.0.jar:/Users/kartik/.m2/repository/io/cucumber/tag-expressions/5.0.6/tag-expressions-5.0.6.jar:/Users/kartik/.m2/repository/io/cucumber/cucumber-expressions/16.1.2/cucumber-expressions-16.1.2.jar:/Users/kartik/.m2/repository/io/cucumber/datatable/7.14.0/datatable-7.14.0.jar:/Users/kartik/.m2/repository/io/cucumber/cucumber-plugin/7.14.0/cucumber-plugin-7.14.0.jar:/Users/kartik/.m2/repository/io/cucumber/docstring/7.14.0/docstring-7.14.0.jar:/Users/kartik/.m2/repository/io/cucumber/html-formatter/20.4.0/html-formatter-20.4.0.jar:/Users/kartik/.m2/repository/io/cucumber/junit-xml-formatter/0.2.0/junit-xml-formatter-0.2.0.jar:/Users/kartik/.m2/repository/io/cucumber/ci-environment/9.2.0/ci-environment-9.2.0.jar:/Users/kartik/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/Users/kartik/.m2/repository/io/cucumber/cucumber-testng/7.14.0/cucumber-testng-7.14.0.jar:/Users/kartik/.m2/repository/io/cucumber/cucumber-picocontainer/7.14.0/cucumber-picocontainer-7.14.0.jar:/Users/kartik/.m2/repository/io/qameta/allure/allure-cucumber7-jvm/2.24.0/allure-cucumber7-jvm-2.24.0.jar:/Users/kartik/.m2/repository/io/qameta/allure/allure-java-commons/2.24.0/allure-java-commons-2.24.0.jar:/Users/kartik/.m2/repository/io/qameta/allure/allure-model/2.24.0/allure-model-2.24.0.jar:/Users/kartik/.m2/repository/io/cucumber/gherkin/26.2.0/gherkin-26.2.0.jar:/Users/kartik/.m2/repository/org/testng/testng/7.8.0/testng-7.8.0.jar:/Users/kartik/.m2/repository/org/slf4j/slf4j-api/1.7.36/slf4j-api-1.7.36.jar:/Users/kartik/.m2/repository/com/beust/jcommander/1.82/jcommander-1.82.jar:/Users/kartik/.m2/repository/org/webjars/jquery/3.6.1/jquery-3.6.1.jar:/Users/kartik/.m2/repository/org/picocontainer/picocontainer/2.15/picocontainer-2.15.jar:/Users/kartik/.m2/repository/com/mailosaur/mailosaur-java/9.0.0/mailosaur-java-9.0.0.jar:/Users/kartik/.m2/repository/com/google/http-client/google-http-client/2.1.0/google-http-client-2.1.0.jar:/Users/kartik/.m2/repository/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar:/Users/kartik/.m2/repository/com/google/errorprone/error_prone_annotations/2.36.0/error_prone_annotations-2.36.0.jar:/Users/kartik/.m2/repository/com/google/j2objc/j2objc-annotations/3.0.0/j2objc-annotations-3.0.0.jar:/Users/kartik/.m2/repository/io/grpc/grpc-context/1.70.0/grpc-context-1.70.0.jar:/Users/kartik/.m2/repository/io/grpc/grpc-api/1.70.0/grpc-api-1.70.0.jar:/Users/kartik/.m2/repository/io/opencensus/opencensus-api/0.31.1/opencensus-api-0.31.1.jar:/Users/kartik/.m2/repository/io/opencensus/opencensus-contrib-http-util/0.31.1/opencensus-contrib-http-util-0.31.1.jar:/Users/kartik/.m2/repository/com/google/http-client/google-http-client-gson/2.1.0/google-http-client-gson-2.1.0.jar:/Users/kartik/.m2/repository/com/google/guava/guava/33.6.0-jre/guava-33.6.0-jre.jar:/Users/kartik/.m2/repository/com/google/guava/failureaccess/1.0.3/failureaccess-1.0.3.jar:/Users/kartik/.m2/repository/com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar:/Users/kartik/.m2/repository/org/jspecify/jspecify/1.0.0/jspecify-1.0.0.jar:/Users/kartik/.m2/repository/com/sun/mail/javax.mail/1.6.2/javax.mail-1.6.2.jar:/Users/kartik/.m2/repository/javax/activation/activation/1.1/activation-1.1.jar:"/>
+    <property name="java.vm.vendor" value="Homebrew"/>
+    <property name="sun.arch.data.model" value="64"/>
+    <property name="java.vendor.url" value="https://github.com/Homebrew/homebrew-core/issues"/>
+    <property name="user.timezone" value="Asia/Kolkata"/>
+    <property name="os.name" value="Mac OS X"/>
+    <property name="java.vm.specification.version" value="25"/>
+    <property name="sun.java.launcher" value="SUN_STANDARD"/>
+    <property name="user.country" value="IN"/>
+    <property name="sun.boot.library.path" value="/opt/homebrew/Cellar/openjdk/25.0.2/libexec/openjdk.jdk/Contents/Home/lib"/>
+    <property name="sun.java.command" value="/Users/kartik/Desktop/aybee-selenium/target/surefire/surefirebooter-20260429032800654_3.jar /Users/kartik/Desktop/aybee-selenium/target/surefire 2026-04-29T03-28-00_611-jvmRun1 surefire-20260429032800654_1tmp surefire_0-20260429032800654_2tmp"/>
+    <property name="http.nonProxyHosts" value="local|*.local|169.254/16|*.169.254/16"/>
+    <property name="jdk.debug" value="release"/>
+    <property name="surefire.test.class.path" value="/Users/kartik/Desktop/aybee-selenium/target/test-classes:/Users/kartik/Desktop/aybee-selenium/target/classes:/Users/kartik/.m2/repository/org/seleniumhq/selenium/selenium-java/3.7.1/selenium-java-3.7.1.jar:/Users/kartik/.m2/repository/org/seleniumhq/selenium/selenium-api/3.7.1/selenium-api-3.7.1.jar:/Users/kartik/.m2/repository/org/seleniumhq/selenium/selenium-chrome-driver/3.7.1/selenium-chrome-driver-3.7.1.jar:/Users/kartik/.m2/repository/org/seleniumhq/selenium/selenium-edge-driver/3.7.1/selenium-edge-driver-3.7.1.jar:/Users/kartik/.m2/repository/org/seleniumhq/selenium/selenium-firefox-driver/3.7.1/selenium-firefox-driver-3.7.1.jar:/Users/kartik/.m2/repository/org/seleniumhq/selenium/selenium-ie-driver/3.7.1/selenium-ie-driver-3.7.1.jar:/Users/kartik/.m2/repository/org/seleniumhq/selenium/selenium-opera-driver/3.7.1/selenium-opera-driver-3.7.1.jar:/Users/kartik/.m2/repository/org/seleniumhq/selenium/selenium-remote-driver/3.7.1/selenium-remote-driver-3.7.1.jar:/Users/kartik/.m2/repository/org/seleniumhq/selenium/selenium-safari-driver/3.7.1/selenium-safari-driver-3.7.1.jar:/Users/kartik/.m2/repository/org/seleniumhq/selenium/selenium-support/3.7.1/selenium-support-3.7.1.jar:/Users/kartik/.m2/repository/net/bytebuddy/byte-buddy/1.7.5/byte-buddy-1.7.5.jar:/Users/kartik/.m2/repository/org/apache/commons/commons-exec/1.3/commons-exec-1.3.jar:/Users/kartik/.m2/repository/commons-codec/commons-codec/1.10/commons-codec-1.10.jar:/Users/kartik/.m2/repository/commons-logging/commons-logging/1.2/commons-logging-1.2.jar:/Users/kartik/.m2/repository/com/google/code/gson/gson/2.8.2/gson-2.8.2.jar:/Users/kartik/.m2/repository/org/apache/httpcomponents/httpclient/4.5.3/httpclient-4.5.3.jar:/Users/kartik/.m2/repository/org/apache/httpcomponents/httpcore/4.4.6/httpcore-4.4.6.jar:/Users/kartik/.m2/repository/io/cucumber/cucumber-java/7.14.0/cucumber-java-7.14.0.jar:/Users/kartik/.m2/repository/io/cucumber/cucumber-core/7.14.0/cucumber-core-7.14.0.jar:/Users/kartik/.m2/repository/io/cucumber/cucumber-gherkin/7.14.0/cucumber-gherkin-7.14.0.jar:/Users/kartik/.m2/repository/io/cucumber/cucumber-gherkin-messages/7.14.0/cucumber-gherkin-messages-7.14.0.jar:/Users/kartik/.m2/repository/io/cucumber/messages/22.0.0/messages-22.0.0.jar:/Users/kartik/.m2/repository/io/cucumber/tag-expressions/5.0.6/tag-expressions-5.0.6.jar:/Users/kartik/.m2/repository/io/cucumber/cucumber-expressions/16.1.2/cucumber-expressions-16.1.2.jar:/Users/kartik/.m2/repository/io/cucumber/datatable/7.14.0/datatable-7.14.0.jar:/Users/kartik/.m2/repository/io/cucumber/cucumber-plugin/7.14.0/cucumber-plugin-7.14.0.jar:/Users/kartik/.m2/repository/io/cucumber/docstring/7.14.0/docstring-7.14.0.jar:/Users/kartik/.m2/repository/io/cucumber/html-formatter/20.4.0/html-formatter-20.4.0.jar:/Users/kartik/.m2/repository/io/cucumber/junit-xml-formatter/0.2.0/junit-xml-formatter-0.2.0.jar:/Users/kartik/.m2/repository/io/cucumber/ci-environment/9.2.0/ci-environment-9.2.0.jar:/Users/kartik/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/Users/kartik/.m2/repository/io/cucumber/cucumber-testng/7.14.0/cucumber-testng-7.14.0.jar:/Users/kartik/.m2/repository/io/cucumber/cucumber-picocontainer/7.14.0/cucumber-picocontainer-7.14.0.jar:/Users/kartik/.m2/repository/io/qameta/allure/allure-cucumber7-jvm/2.24.0/allure-cucumber7-jvm-2.24.0.jar:/Users/kartik/.m2/repository/io/qameta/allure/allure-java-commons/2.24.0/allure-java-commons-2.24.0.jar:/Users/kartik/.m2/repository/io/qameta/allure/allure-model/2.24.0/allure-model-2.24.0.jar:/Users/kartik/.m2/repository/io/cucumber/gherkin/26.2.0/gherkin-26.2.0.jar:/Users/kartik/.m2/repository/org/testng/testng/7.8.0/testng-7.8.0.jar:/Users/kartik/.m2/repository/org/slf4j/slf4j-api/1.7.36/slf4j-api-1.7.36.jar:/Users/kartik/.m2/repository/com/beust/jcommander/1.82/jcommander-1.82.jar:/Users/kartik/.m2/repository/org/webjars/jquery/3.6.1/jquery-3.6.1.jar:/Users/kartik/.m2/repository/org/picocontainer/picocontainer/2.15/picocontainer-2.15.jar:/Users/kartik/.m2/repository/com/mailosaur/mailosaur-java/9.0.0/mailosaur-java-9.0.0.jar:/Users/kartik/.m2/repository/com/google/http-client/google-http-client/2.1.0/google-http-client-2.1.0.jar:/Users/kartik/.m2/repository/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar:/Users/kartik/.m2/repository/com/google/errorprone/error_prone_annotations/2.36.0/error_prone_annotations-2.36.0.jar:/Users/kartik/.m2/repository/com/google/j2objc/j2objc-annotations/3.0.0/j2objc-annotations-3.0.0.jar:/Users/kartik/.m2/repository/io/grpc/grpc-context/1.70.0/grpc-context-1.70.0.jar:/Users/kartik/.m2/repository/io/grpc/grpc-api/1.70.0/grpc-api-1.70.0.jar:/Users/kartik/.m2/repository/io/opencensus/opencensus-api/0.31.1/opencensus-api-0.31.1.jar:/Users/kartik/.m2/repository/io/opencensus/opencensus-contrib-http-util/0.31.1/opencensus-contrib-http-util-0.31.1.jar:/Users/kartik/.m2/repository/com/google/http-client/google-http-client-gson/2.1.0/google-http-client-gson-2.1.0.jar:/Users/kartik/.m2/repository/com/google/guava/guava/33.6.0-jre/guava-33.6.0-jre.jar:/Users/kartik/.m2/repository/com/google/guava/failureaccess/1.0.3/failureaccess-1.0.3.jar:/Users/kartik/.m2/repository/com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar:/Users/kartik/.m2/repository/org/jspecify/jspecify/1.0.0/jspecify-1.0.0.jar:/Users/kartik/.m2/repository/com/sun/mail/javax.mail/1.6.2/javax.mail-1.6.2.jar:/Users/kartik/.m2/repository/javax/activation/activation/1.1/activation-1.1.jar:"/>
+    <property name="allure.results.directory" value="/Users/kartik/Desktop/aybee-selenium/target/allure-results"/>
+    <property name="sun.cpu.endian" value="little"/>
+    <property name="user.home" value="/Users/kartik"/>
+    <property name="user.language" value="en"/>
+    <property name="java.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.version.date" value="2026-01-20"/>
+    <property name="java.home" value="/opt/homebrew/Cellar/openjdk/25.0.2/libexec/openjdk.jdk/Contents/Home"/>
+    <property name="file.separator" value="/"/>
+    <property name="basedir" value="/Users/kartik/Desktop/aybee-selenium"/>
+    <property name="java.vm.compressedOopsMode" value="Zero based"/>
+    <property name="line.separator" value="&#10;"/>
+    <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.specification.name" value="Java Platform API Specification"/>
+    <property name="apple.awt.application.name" value="ForkedBooter"/>
+    <property name="surefire.real.class.path" value="/Users/kartik/Desktop/aybee-selenium/target/surefire/surefirebooter-20260429032800654_3.jar"/>
+    <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
+    <property name="ftp.nonProxyHosts" value="local|*.local|169.254/16|*.169.254/16"/>
+    <property name="java.runtime.version" value="25.0.2"/>
+    <property name="user.name" value="kartik"/>
+    <property name="stdout.encoding" value="UTF-8"/>
+    <property name="path.separator" value=":"/>
+    <property name="os.version" value="26.3.1"/>
+    <property name="java.runtime.name" value="OpenJDK Runtime Environment"/>
+    <property name="file.encoding" value="UTF-8"/>
+    <property name="java.vm.name" value="OpenJDK 64-Bit Server VM"/>
+    <property name="java.vendor.version" value="Homebrew"/>
+    <property name="localRepository" value="/Users/kartik/.m2/repository"/>
+    <property name="java.vendor.url.bug" value="https://github.com/Homebrew/homebrew-core/issues"/>
+    <property name="java.io.tmpdir" value="/var/folders/1k/gtbghjmx4f50c5k5syb08gmc0000gn/T/"/>
+    <property name="java.version" value="25.0.2"/>
+    <property name="cucumber.filter.tags" value="@emailInvite"/>
+    <property name="user.dir" value="/Users/kartik/Desktop/aybee-selenium"/>
+    <property name="os.arch" value="aarch64"/>
+    <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
+    <property name="native.encoding" value="UTF-8"/>
+    <property name="java.library.path" value="/Users/kartik/Library/Java/Extensions:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java:."/>
+    <property name="java.vm.info" value="mixed mode, sharing"/>
+    <property name="stderr.encoding" value="UTF-8"/>
+    <property name="java.vendor" value="Homebrew"/>
+    <property name="java.vm.version" value="25.0.2"/>
+    <property name="stdin.encoding" value="UTF-8"/>
+    <property name="sun.io.unicode.encoding" value="UnicodeBig"/>
+    <property name="socksNonProxyHosts" value="local|*.local|169.254/16|*.169.254/16"/>
+    <property name="java.class.version" value="69.0"/>
+  </properties>
+  <testcase name="runScenario[&quot;New user accepts an email invitation and lands on the dashboard&quot;, &quot;Email Invite — Accept Invitation Page for New and Existing Users&quot;](1)" classname="com.aybee.runner.TestRunner" time="35.519">
+    <system-out><![CDATA[
+@emailInvite
+Scenario: New user accepts an email invitation and lands on the dashboard &amp#27;[90m# src/test/resources/features/09_email_invite/EmailInvite.feature:4&amp#27;[0m
+[Mailosaur] Waiting for email to: a13484089@ibyoxwxn.mailosaur.net
+[Mailosaur] Received — subject: Your Aybee code (almost there 👀)
+  &amp#27;[32mGiven &amp#27;[0m&amp#27;[32mI am logged in as a verified user&amp#27;[0m                                 &amp#27;[90m# com.aybee.steps.AuthSteps.iAmLoggedInAsAVerifiedUser()&amp#27;[0m
+[Mailosaur] Waiting for email to: a13502250@ibyoxwxn.mailosaur.net with subject: invited you to Aybee
+[Mailosaur] Received — subject: Test User invited you to Aybee 👋
+  &amp#27;[32mWhen &amp#27;[0m&amp#27;[32mI send an email invite to a new user with role &amp#27;[0m&amp#27;[32m&amp#27;[1m"user"&amp#27;[0m              &amp#27;[90m# com.aybee.steps.InviteFlowSteps.iSendEmailInviteToNewUser(java.lang.String)&amp#27;[0m
+  &amp#27;[32mAnd &amp#27;[0m&amp#27;[32mI open the accept invitation link for the new user from email&amp#27;[0m       &amp#27;[90m# com.aybee.steps.InviteFlowSteps.iOpenAcceptInvitationLinkForNewUser()&amp#27;[0m
+  &amp#27;[32mThen &amp#27;[0m&amp#27;[32mthe invitation email field should be pre-filled and locked&amp#27;[0m         &amp#27;[90m# com.aybee.steps.InviteFlowSteps.invitationEmailFieldShouldBePrefilledAndLocked()&amp#27;[0m
+  &amp#27;[32mWhen &amp#27;[0m&amp#27;[32mI enter &amp#27;[0m&amp#27;[32m&amp#27;[1m"Password123"&amp#27;[0m&amp#27;[32m as the invitation password&amp#27;[0m                   &amp#27;[90m# com.aybee.steps.InviteFlowSteps.iEnterAsInvitationPassword(java.lang.String)&amp#27;[0m
+  &amp#27;[32mAnd &amp#27;[0m&amp#27;[32mI click Accept Invitation&amp#27;[0m                                           &amp#27;[90m# com.aybee.steps.InviteFlowSteps.iClickAcceptInvitation()&amp#27;[0m
+  &amp#27;[32mAnd &amp#27;[0m&amp#27;[32mI complete the onboarding questions if displayed&amp#27;[0m                    &amp#27;[90m# com.aybee.steps.SignupFlowSteps.iCompleteOnboardingQuestionsIfDisplayed()&amp#27;[0m
+  &amp#27;[32mThen &amp#27;[0m&amp#27;[32mI should be on the dashboard&amp#27;[0m                                       &amp#27;[90m# com.aybee.steps.SignupFlowSteps.iShouldBeOnTheDashboard()&amp#27;[0m
+]]></system-out>
+    <system-err><![CDATA[SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+Starting ChromeDriver 147.0.7727.56 (b28eac7a1a97ec8d7bc58eca0242958254be494d-refs/branch-heads/7727_49@{#6}) on port 5264
+Only local connections are allowed.
+Please see https://chromedriver.chromium.org/security-considerations for suggestions on keeping ChromeDriver safe.
+ChromeDriver was started successfully on port 5264.
+[1777413481.535][WARNING]: Deprecated chrome option is ignored: useAutomationExtension
+[1777413481.535][WARNING]: Deprecated chrome option is ignored: useAutomationExtension
+Apr 29, 2026 3:28:04 AM org.openqa.selenium.remote.ProtocolHandshake createSession
+INFO: Detected dialect: W3C
+]]></system-err>
+  </testcase>
+  <testcase name="runScenario[&quot;Already registered user sees a browser alert when accepting an email invitation&quot;, &quot;Email Invite — Accept Invitation Page for New and Existing Users&quot;](2)" classname="com.aybee.runner.TestRunner" time="30.619">
+    <system-out><![CDATA[
+@emailInvite
+Scenario: Already registered user sees a browser alert when accepting an email invitation &amp#27;[90m# src/test/resources/features/09_email_invite/EmailInvite.feature:15&amp#27;[0m
+[Mailosaur] Waiting for email to: a13516701@ibyoxwxn.mailosaur.net
+[Mailosaur] Received — subject: Your Aybee code (almost there 👀)
+  &amp#27;[32mGiven &amp#27;[0m&amp#27;[32mI am logged in as a verified user&amp#27;[0m                                                 &amp#27;[90m# com.aybee.steps.AuthSteps.iAmLoggedInAsAVerifiedUser()&amp#27;[0m
+[Mailosaur] Waiting for email to: a13528846@ibyoxwxn.mailosaur.net with subject: invited you to Aybee
+[Mailosaur] Received — subject: Test User invited you to Aybee 👋
+[Mailosaur] Waiting for email to: a13528846@ibyoxwxn.mailosaur.net with subject: Your Aybee code
+[Mailosaur] Received — subject: Your Aybee code (almost there 👀)
+  &amp#27;[32mWhen &amp#27;[0m&amp#27;[32mI send an email invite to my own email address&amp#27;[0m                                     &amp#27;[90m# com.aybee.steps.InviteFlowSteps.iSendEmailInviteToMyOwnEmail()&amp#27;[0m
+  &amp#27;[32mAnd &amp#27;[0m&amp#27;[32mI open the accept invitation link from email&amp#27;[0m                                        &amp#27;[90m# com.aybee.steps.InviteFlowSteps.iOpenAcceptInvitationLinkFromEmail()&amp#27;[0m
+  &amp#27;[32mAnd &amp#27;[0m&amp#27;[32mI enter my own password as the invitation password&amp#27;[0m                                  &amp#27;[90m# com.aybee.steps.InviteFlowSteps.iEnterMyOwnPasswordAsInvitationPassword()&amp#27;[0m
+  &amp#27;[32mAnd &amp#27;[0m&amp#27;[32mI click Accept Invitation&amp#27;[0m                                                           &amp#27;[90m# com.aybee.steps.InviteFlowSteps.iClickAcceptInvitation()&amp#27;[0m
+  &amp#27;[32mThen &amp#27;[0m&amp#27;[32mI should see an already registered alert containing my email&amp#27;[0m                       &amp#27;[90m# com.aybee.steps.InviteFlowSteps.iShouldSeeAlreadyRegisteredAlertContainingMyEmail()&amp#27;[0m
+]]></system-out>
+    <system-err><![CDATA[Apr 29, 2026 3:29:07 AM org.openqa.selenium.support.ui.ExpectedConditions findElement
+WARNING: WebDriverException thrown by findElement(By.id: toast-animate-in)
+org.openqa.selenium.UnhandledAlertException: unexpected alert open: {Alert text : This email is already in use: a13528846@ibyoxwxn.mailosaur.net}
+  (Session info: chrome=147.0.7727.117): This email is already in use: a13528846@ibyoxwxn.mailosaur.net
+Build info: version: '3.7.1', revision: '8a0099a', time: '2017-11-06T21:01:39.354Z'
+System info: host: 'Kartiks-MacBook-Air.local', ip: '2401:4900:1c68:6f7d:f9e5:e766:d66a:b46f%en0', os.name: 'Mac OS X', os.arch: 'aarch64', os.version: '26.3.1', java.version: '25.0.2'
+Driver info: org.openqa.selenium.chrome.ChromeDriver
+Capabilities {acceptInsecureCerts: false, browserName: chrome, browserVersion: 147.0.7727.117, chrome: {chromedriverVersion: 147.0.7727.56 (b28eac7a1a97..., userDataDir: /var/folders/1k/gtbghjmx4f5...}, fedcm:accounts: true, goog:chromeOptions: {debuggerAddress: localhost:63643}, goog:processID: 93908, javascriptEnabled: true, networkConnectionEnabled: false, pageLoadStrategy: normal, platform: MAC, platformName: MAC, proxy: Proxy(), setWindowRect: true, strictFileInteractability: false, timeouts: {implicit: 0, pageLoad: 300000, script: 30000}, unhandledPromptBehavior: dismiss and notify, webauthn:extension:credBlob: true, webauthn:extension:largeBlob: true, webauthn:extension:minPinLength: true, webauthn:extension:prf: true, webauthn:virtualAuthenticators: true}
+Session ID: 6aebbf6cf325215baf4e39d54619441f
+*** Element info: {Using=id, value=toast-animate-in}
+	at org.openqa.selenium.remote.http.W3CHttpResponseCodec.decode(W3CHttpResponseCodec.java:120)
+	at org.openqa.selenium.remote.http.W3CHttpResponseCodec.decode(W3CHttpResponseCodec.java:49)
+	at org.openqa.selenium.remote.HttpCommandExecutor.execute(HttpCommandExecutor.java:164)
+	at org.openqa.selenium.remote.service.DriverCommandExecutor.execute(DriverCommandExecutor.java:83)
+	at org.openqa.selenium.remote.RemoteWebDriver.execute(RemoteWebDriver.java:600)
+	at org.openqa.selenium.remote.RemoteWebDriver.findElements(RemoteWebDriver.java:397)
+	at org.openqa.selenium.remote.RemoteWebDriver.findElementsById(RemoteWebDriver.java:420)
+	at org.openqa.selenium.By$ById.findElements(By.java:210)
+	at org.openqa.selenium.remote.RemoteWebDriver.findElements(RemoteWebDriver.java:358)
+	at org.openqa.selenium.support.ui.ExpectedConditions.findElement(ExpectedConditions.java:881)
+	at org.openqa.selenium.support.ui.ExpectedConditions.access$000(ExpectedConditions.java:43)
+	at org.openqa.selenium.support.ui.ExpectedConditions$6.apply(ExpectedConditions.java:182)
+	at org.openqa.selenium.support.ui.ExpectedConditions$6.apply(ExpectedConditions.java:179)
+	at org.openqa.selenium.support.ui.FluentWait.until(FluentWait.java:208)
+	at com.aybee.pages.BasePage.getNotificationText(BasePage.java:32)
+	at com.aybee.pages.AcceptInvitationPage.getAndDismissAlreadyRegisteredAlert(AcceptInvitationPage.java:87)
+	at com.aybee.steps.InviteFlowSteps.iShouldSeeAlreadyRegisteredAlertContainingMyEmail(InviteFlowSteps.java:151)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at io.cucumber.java.Invoker.doInvoke(Invoker.java:66)
+	at io.cucumber.java.Invoker.invoke(Invoker.java:24)
+	at io.cucumber.java.AbstractGlueDefinition.invokeMethod(AbstractGlueDefinition.java:47)
+	at io.cucumber.java.JavaStepDefinition.execute(JavaStepDefinition.java:29)
+	at io.cucumber.core.runner.CoreStepDefinition.execute(CoreStepDefinition.java:66)
+	at io.cucumber.core.runner.PickleStepDefinitionMatch.runStep(PickleStepDefinitionMatch.java:63)
+	at io.cucumber.core.runner.ExecutionMode$1.execute(ExecutionMode.java:10)
+	at io.cucumber.core.runner.TestStep.executeStep(TestStep.java:84)
+	at io.cucumber.core.runner.TestStep.run(TestStep.java:56)
+	at io.cucumber.core.runner.PickleStepTestStep.run(PickleStepTestStep.java:51)
+	at io.cucumber.core.runner.TestCase.run(TestCase.java:84)
+	at io.cucumber.core.runner.Runner.runPickle(Runner.java:75)
+	at io.cucumber.testng.TestNGCucumberRunner.lambda$runScenario$1(TestNGCucumberRunner.java:132)
+	at io.cucumber.core.runtime.CucumberExecutionContext.lambda$runTestCase$5(CucumberExecutionContext.java:137)
+	at io.cucumber.core.runtime.RethrowingThrowableCollector.executeAndThrow(RethrowingThrowableCollector.java:23)
+	at io.cucumber.core.runtime.CucumberExecutionContext.runTestCase(CucumberExecutionContext.java:137)
+	at io.cucumber.testng.TestNGCucumberRunner.runScenario(TestNGCucumberRunner.java:129)
+	at io.cucumber.testng.AbstractTestNGCucumberTests.runScenario(AbstractTestNGCucumberTests.java:35)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at org.testng.internal.invokers.MethodInvocationHelper.invokeMethod(MethodInvocationHelper.java:139)
+	at org.testng.internal.invokers.TestInvoker.invokeMethod(TestInvoker.java:664)
+	at org.testng.internal.invokers.TestInvoker.invokeTestMethod(TestInvoker.java:227)
+	at org.testng.internal.invokers.MethodRunner.runInSequence(MethodRunner.java:50)
+	at org.testng.internal.invokers.TestInvoker$MethodInvocationAgent.invoke(TestInvoker.java:957)
+	at org.testng.internal.invokers.TestInvoker.invokeTestMethods(TestInvoker.java:200)
+	at org.testng.internal.invokers.TestMethodWorker.invokeTestMethods(TestMethodWorker.java:148)
+	at org.testng.internal.invokers.TestMethodWorker.run(TestMethodWorker.java:128)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at org.testng.TestRunner.privateRun(TestRunner.java:848)
+	at org.testng.TestRunner.run(TestRunner.java:621)
+	at org.testng.SuiteRunner.runTest(SuiteRunner.java:443)
+	at org.testng.SuiteRunner.runSequentially(SuiteRunner.java:437)
+	at org.testng.SuiteRunner.privateRun(SuiteRunner.java:397)
+	at org.testng.SuiteRunner.run(SuiteRunner.java:336)
+	at org.testng.SuiteRunnerWorker.runSuite(SuiteRunnerWorker.java:52)
+	at org.testng.SuiteRunnerWorker.run(SuiteRunnerWorker.java:95)
+	at org.testng.TestNG.runSuitesSequentially(TestNG.java:1280)
+	at org.testng.TestNG.runSuitesLocally(TestNG.java:1200)
+	at org.testng.TestNG.runSuites(TestNG.java:1114)
+	at org.testng.TestNG.run(TestNG.java:1082)
+	at org.apache.maven.surefire.testng.TestNGExecutor.run(TestNGExecutor.java:308)
+	at org.apache.maven.surefire.testng.TestNGXmlTestSuite.execute(TestNGXmlTestSuite.java:71)
+	at org.apache.maven.surefire.testng.TestNGProvider.invoke(TestNGProvider.java:113)
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:385)
+	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162)
+	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507)
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495)
+
+]]></system-err>
+  </testcase>
+</testsuite>

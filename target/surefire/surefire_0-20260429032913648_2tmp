@@ -1,0 +1,5 @@
+#surefire_0
+#Wed Apr 29 03:29:13 IST 2026
+allure.results.directory=/Users/kartik/Desktop/aybee-selenium/target/allure-results
+basedir=/Users/kartik/Desktop/aybee-selenium
+localRepository=/Users/kartik/.m2/repository

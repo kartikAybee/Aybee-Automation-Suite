@@ -24,8 +24,8 @@ public class GlobalTestState {
         if (ctx.previewUrl         != null) previewUrl         = ctx.previewUrl;
         if (ctx.scenarioAProduct   != null) scenarioAProduct   = ctx.scenarioAProduct;
         if (ctx.scenarioBProduct   != null) scenarioBProduct   = ctx.scenarioBProduct;
-        if (ctx.scenarioAProductName != null) scenarioAProductName = ctx.scenarioAProductName;
-        if (ctx.scenarioBProductName != null) scenarioBProductName = ctx.scenarioBProductName;
+        if (ctx.scenarioAProductName != null && !ctx.scenarioAProductName.isBlank()) scenarioAProductName = ctx.scenarioAProductName;
+        if (ctx.scenarioBProductName != null && !ctx.scenarioBProductName.isBlank()) scenarioBProductName = ctx.scenarioBProductName;
         if (ctx.currentScenario    != null) currentScenario    = ctx.currentScenario;
         cartHasItem = ctx.cartHasItem;
     }
@@ -34,8 +34,8 @@ public class GlobalTestState {
         if (previewUrl         != null) ctx.previewUrl         = previewUrl;
         if (scenarioAProduct   != null) ctx.scenarioAProduct   = scenarioAProduct;
         if (scenarioBProduct   != null) ctx.scenarioBProduct   = scenarioBProduct;
-        if (scenarioAProductName != null) ctx.scenarioAProductName = scenarioAProductName;
-        if (scenarioBProductName != null) ctx.scenarioBProductName = scenarioBProductName;
+        if (scenarioAProductName != null && !scenarioAProductName.isBlank()) ctx.scenarioAProductName = scenarioAProductName;
+        if (scenarioBProductName != null && !scenarioBProductName.isBlank()) ctx.scenarioBProductName = scenarioBProductName;
         if (currentScenario    != null) ctx.currentScenario    = currentScenario;
         ctx.cartHasItem = cartHasItem;
     }

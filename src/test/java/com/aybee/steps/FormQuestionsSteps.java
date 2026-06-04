@@ -2,8 +2,8 @@ package com.aybee.steps;
 
 import com.aybee.context.GlobalTestState;
 import com.aybee.context.ScenarioContext;
-import com.aybee.pages.FormQuestionsPage;
 import com.aybee.utils.ConfigReader;
+import com.aybee.pages.FormQuestionsPage;
 import io.cucumber.java.en.And;
 
 import java.util.Arrays;
@@ -126,7 +126,7 @@ public class FormQuestionsSteps {
             // Filter — both tabs active (combo filter).
             .openFilterSidebar(Q3_IDX)
             .clickFilterByScenarioTab()
-            .selectSpecificBoughtProduct(ConfigReader.get("SPECIFIC_PRODUCT_PARTIAL_NAME"))
+            .selectSpecificBoughtProduct(context.scenarioAProductName, context.scenarioBProductName)
             .clickFilterByResponseTab()
             // Add Q2 → select one answer → delete the entry → re-add Q2 → select two answers.
             .clickAddFilterQuestion(1)
@@ -161,7 +161,7 @@ public class FormQuestionsSteps {
             .enterQuestionText(Q4_IDX, questionText)
             .selectQuestionType(Q4_IDX, "multiple_choice")
             .selectShowToParticipants(Q4_IDX, "specific_product")
-            .selectSpecificProduct(Q4_IDX, ConfigReader.get("SPECIFIC_PRODUCT_PARTIAL_NAME"))
+            .selectSpecificProduct(Q4_IDX, context.scenarioAProductName)
             .enterAnswerText(Q4_IDX, 1, opt1)
             .enterAnswerText(Q4_IDX, 2, opt2)
             .enterAnswerText(Q4_IDX, 3, opt3)
@@ -175,7 +175,7 @@ public class FormQuestionsSteps {
             // Filter — both tabs active (combo filter).
             .openFilterSidebar(Q4_IDX)
             .clickFilterByScenarioTab()
-            .selectSpecificBoughtProduct(ConfigReader.get("SPECIFIC_PRODUCT_PARTIAL_NAME"))
+            .selectSpecificBoughtProduct(context.scenarioAProductName, context.scenarioBProductName)
             .clickFilterByResponseTab()
             .clickAddFilterQuestion(1)
             .selectFilterQuestion(1, Q2_PARTIAL)
@@ -201,10 +201,10 @@ public class FormQuestionsSteps {
         page.addNewQuestion(Q5_IDX)
             .enterQuestionText(Q5_IDX, questionText)
             .selectQuestionType(Q5_IDX, "likert_scale")
-//            .selectShowToParticipants(Q5_IDX, "uploaded_image")
-//            .clickAssetUploadField(Q5_IDX)
-//            .uploadAssetFile(ConfigReader.get("ASSET_IMAGE_PATH"))
-//            .confirmAssetUpload()
+            .selectShowToParticipants(Q5_IDX, "uploaded_image")
+            .clickAssetUploadField(Q5_IDX)
+            .uploadAssetFile(ConfigReader.get("ASSET_IMAGE_PATH"))
+            .confirmAssetUpload()
             .selectScaleType(Q5_IDX, "horizontal")
             .waitForLikertOptions(Q5_IDX, 6)
             .deleteAnswer(Q5_IDX, 6)

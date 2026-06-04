@@ -29,8 +29,10 @@ public class FormQuestionsPage extends BasePage {
     private final By addManuallyButton    = By.id("add-manually-btn");
     private final By previewJourneyButton = By.id("newproject_formquestions_previewjourney_button");
 
-    // Asset upload popup
+    // Asset upload popup — File-Upload-Asset-Input is the outer container;
+    // dropzone is the clickable upload button inside it (id ends with bare "-").
     private final By fileUploadInput = By.id("File-Upload-Asset-Input");
+    private final By dropzone        = By.cssSelector("[id='dropzone-']");
     private final By addUploadButton = By.id("add-Upload-Assets");
 
     // Filter sidebar
@@ -243,15 +245,26 @@ public class FormQuestionsPage extends BasePage {
 
     @Step("Send file path to upload input")
     public FormQuestionsPage uploadAssetFile(String filePath) {
-        // Native file inputs accept sendKeys even when hidden — no need to click the
-        // custom Bubble.io upload widget or make the input visible first.
-        driver.findElement(fileUploadInput).sendKeys(filePath);
+        // Primary: sendKeys directly on the File-Upload-Asset-Input container.
+        // Works for any file size — no base64 size limit. This was the original approach.
+        try {
+            System.out.println("[FileUpload] Primary — sendKeys on File-Upload-Asset-Input");
+            WebElement el = wait.until(ExpectedConditions.presenceOfElementLocated(fileUploadInput));
+            el.sendKeys(filePath);
+            System.out.println("[FileUpload] Primary succeeded");
+        } catch (Exception e) {
+            // Fallback: JS DataTransfer drop. Works for small files (< ~100KB) only —
+            // base64-encoding large files exceeds Selenium's JS argument size limit.
+            System.out.println("[FileUpload] Primary failed (" + e.getClass().getSimpleName() + ") — trying DataTransfer fallback");
+            uploadFileViaDataTransfer(dropzone, filePath, mimeTypeFrom(filePath));
+        }
         try { Thread.sleep(2000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
         return this;
     }
 
     @Step("Confirm asset upload")
     public FormQuestionsPage confirmAssetUpload() {
+        try { Thread.sleep(2000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
         jsClick(addUploadButton);
         wait.until(ExpectedConditions.invisibilityOfElementLocated(addUploadButton));
         // Allow Bubble.io to finish saving the uploaded asset before proceeding.
@@ -499,27 +512,46 @@ public class FormQuestionsPage extends BasePage {
         return this;
     }
 
-    // Matches by partial ID since the trimmed product name length varies.
-    @Step("Select specific bought product containing '{partialName}'")
-    public FormQuestionsPage selectSpecificBoughtProduct(String partialName) {
+    // Clicks every product chip whose ID contains any significant word from nameA or nameB.
+    // IDs use a partial/truncated form of the displayed name so we match word-by-word.
+    @Step("Select specific bought products for scenario A and B")
+    public FormQuestionsPage selectSpecificBoughtProduct(String nameA, String nameB) {
         List<WebElement> products = wait.until(
             ExpectedConditions.presenceOfAllElementsLocatedBy(
                 By.cssSelector("[id^='specific-product-']")));
+        boolean clicked = false;
         for (WebElement el : products) {
-            if (el.getAttribute("id").contains(partialName)) {
+            String id = el.getAttribute("id").toLowerCase();
+            if (idMatchesName(id, nameA) || idMatchesName(id, nameB)) {
                 ((JavascriptExecutor) driver).executeScript("arguments[0].click();", el);
-                return this;
+                clicked = true;
             }
         }
-        throw new RuntimeException("Specific bought product not found: " + partialName);
+        if (!clicked) throw new RuntimeException(
+            "No specific bought product chip found for: " + nameA + " / " + nameB);
+        return this;
+    }
+
+    private boolean idMatchesName(String id, String name) {
+        if (name == null || name.isBlank()) return false;
+        for (String word : name.split("\\s+")) {
+            if (word.length() > 2 && id.contains(word.toLowerCase())) return true;
+        }
+        return false;
     }
 
     @Step("Click Filter by Responses tab")
     public FormQuestionsPage clickFilterByResponseTab() {
-        jsClick(filterByResponseTab);
-        // Wait for the Add Question button to be visible — confirms Response tab content has loaded.
-        new WebDriverWait(driver, 30).until(
-            ExpectedConditions.visibilityOfElementLocated(addFilterQuestionBtn));
+        scrollTo(filterByResponseTab);
+        // Real click — jsClick bypasses Bubble.io's tab activation handler.
+        new WebDriverWait(driver, 10).until(
+            ExpectedConditions.elementToBeClickable(filterByResponseTab)).click();
+        // Scenario-A element disappearing confirms the Scenario tab content is now hidden.
+        new WebDriverWait(driver, 15).until(
+            ExpectedConditions.invisibilityOfElementLocated(By.id("scenario-A")));
+        // Add Question button becoming clickable confirms Response tab is fully active.
+        new WebDriverWait(driver, 15).until(
+            ExpectedConditions.elementToBeClickable(addFilterQuestionBtn));
         return this;
     }
 
@@ -649,10 +681,22 @@ public class FormQuestionsPage extends BasePage {
         try { Thread.sleep(2000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
     }
 
-    // Touches the first answer input of the given question by typing 's'.
-    // Forces Bubble.io's reactive system to re-evaluate form completion state,
-    // clearing false-negative "incomplete" flags on limited, single, and multiple choice questions.
-    // Returns the updated text of the first answer option so callers can sync GlobalTestState.
+    private void syncRetriggered(int qIdx, String updated) {
+        if (updated == null || updated.isEmpty()) return;
+        if (qIdx == FIRST_QUESTION_INDEX + 1
+                && GlobalTestState.q2SelectOptions != null
+                && GlobalTestState.q2SelectOptions.size() >= 2) {
+            GlobalTestState.q2SelectOptions = Arrays.asList(updated, GlobalTestState.q2SelectOptions.get(1));
+        } else if (qIdx == FIRST_QUESTION_INDEX + 2) {
+            GlobalTestState.q3SelectOption = updated;
+        } else if (qIdx == FIRST_QUESTION_INDEX + 3
+                && GlobalTestState.q4SelectOptions != null
+                && GlobalTestState.q4SelectOptions.size() >= 2) {
+            GlobalTestState.q4SelectOptions = Arrays.asList(updated, GlobalTestState.q4SelectOptions.get(1));
+        }
+        // Q5 and Q6 — no GlobalTestState sync needed; participant form selects by scale position ID
+    }
+
     private String retriggerChoiceValidation(int questionIndex) {
         sleep2s();
         scrollTo(By.id(questionIndex + "-toggle-group"));
@@ -675,7 +719,6 @@ public class FormQuestionsPage extends BasePage {
         sleep2s();
         input.sendKeys("s");
 
-        // Read the updated value now — it reflects the appended 's' — before collapsing.
         String updatedText = input.getAttribute("value");
         System.out.println("[Retrigger] Q" + questionIndex + " first option updated to: " + updatedText);
 
@@ -708,13 +751,14 @@ public class FormQuestionsPage extends BasePage {
         while (System.currentTimeMillis() < deadline) {
             if (driver.getWindowHandles().size() > 1) return true;
             try {
-                List<WebElement> toasts = driver.findElements(By.id("toast-message"));
+                List<WebElement> toasts = driver.findElements(
+                    By.cssSelector("#toast-message, #toast-animate-in, [id^='toast-']"));
                 if (!toasts.isEmpty() && toasts.get(0).isDisplayed()) {
                     toastDetectedDuringPoll = true;
                     return false;
                 }
             } catch (Exception ignored) {}
-            try { Thread.sleep(300); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+            try { Thread.sleep(100); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
         }
         return false; // timeout — no tab, no toast
     }
@@ -730,12 +774,23 @@ public class FormQuestionsPage extends BasePage {
         String mainWindow = driver.getWindowHandle();
         incompleteToastSeenOnLastPreview = false;
 
+        // Questions retriggered one-per-toast in order — each toast dismissal clears
+        // the signal so the next attempt gets a fresh toast, confirming whether validation
+        // is still failing after the previous edit.
+        int[] retriggerQueue = {
+            FIRST_QUESTION_INDEX + 1,  // Q2 — Limited Choice
+            FIRST_QUESTION_INDEX + 2,  // Q3 — Single Choice
+            FIRST_QUESTION_INDEX + 3,  // Q4 — Multiple Choice
+            FIRST_QUESTION_INDEX + 4,  // Q5 — Likert Horizontal
+            FIRST_QUESTION_INDEX + 5   // Q6 — Likert Vertical
+        };
+        int retriggerIdx = 0;
+
         scrollTo(previewJourneyButton);
         jsClick(previewJourneyButton);
 
-        final int MAX_ATTEMPTS = 3;
+        final int MAX_ATTEMPTS = retriggerQueue.length + 1;
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-            // Give the last attempt the full 30 s; earlier attempts use 10 s each.
             boolean tabOpened = pollForTabOrToast(attempt < MAX_ATTEMPTS ? 10 : 30);
             if (tabOpened) break;
 
@@ -745,38 +800,29 @@ public class FormQuestionsPage extends BasePage {
             }
 
             if (toastDetectedDuringPoll) {
-                // Toast was seen — dismiss it and retrigger choice question validation.
-                // This is the only path that runs retrigger; if the poll timed out without
-                // seeing a toast we skip straight to the retry click to save time.
                 incompleteToastSeenOnLastPreview = true;
-                System.out.println("[Preview] Incomplete-fields toast on attempt " + attempt + " — dismissing and retriggering");
+                // Dismiss the toast immediately — its purpose (signal validation failed) is
+                // served. The next attempt will produce a fresh toast if still failing.
                 try {
                     driver.findElement(By.id("dismiss-toast")).click();
-                    new WebDriverWait(driver, 30).until(
-                        ExpectedConditions.invisibilityOfElementLocated(By.id("toast-message")));
+                    new WebDriverWait(driver, 5).until(
+                        ExpectedConditions.invisibilityOfElementLocated(
+                            By.cssSelector("[id^='toast-']")));
                 } catch (Exception ignored) {}
-                String newQ2Opt1 = retriggerChoiceValidation(FIRST_QUESTION_INDEX + 1);
-                if (newQ2Opt1 != null && !newQ2Opt1.isEmpty()
-                        && GlobalTestState.q2SelectOptions != null
-                        && GlobalTestState.q2SelectOptions.size() >= 2) {
-                    GlobalTestState.q2SelectOptions = Arrays.asList(
-                        newQ2Opt1, GlobalTestState.q2SelectOptions.get(1));
+
+                if (retriggerIdx < retriggerQueue.length) {
+                    int qIdx = retriggerQueue[retriggerIdx++];
+                    System.out.println("[Preview] Toast on attempt " + attempt
+                        + " — retriggering question index " + qIdx);
+                    String updated = retriggerChoiceValidation(qIdx);
+                    syncRetriggered(qIdx, updated);
+                } else {
+                    System.out.println("[Preview] Toast on attempt " + attempt
+                        + " — all questions already retriggered, retrying click");
                 }
-                String newQ3Opt1 = retriggerChoiceValidation(FIRST_QUESTION_INDEX + 2);
-                if (newQ3Opt1 != null && !newQ3Opt1.isEmpty()) {
-                    GlobalTestState.q3SelectOption = newQ3Opt1;
-                }
-                String newQ4Opt1 = retriggerChoiceValidation(FIRST_QUESTION_INDEX + 3);
-                if (newQ4Opt1 != null && !newQ4Opt1.isEmpty()
-                        && GlobalTestState.q4SelectOptions != null
-                        && GlobalTestState.q4SelectOptions.size() >= 2) {
-                    GlobalTestState.q4SelectOptions = Arrays.asList(
-                        newQ4Opt1, GlobalTestState.q4SelectOptions.get(1));
-                }
-                try { Thread.sleep(3000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+                try { Thread.sleep(2000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
             } else {
-                // Poll timed out — no toast seen. Skip retrigger entirely and retry the click.
-                System.out.println("[Preview] No tab or toast on attempt " + attempt + " — retrying click without retrigger");
+                System.out.println("[Preview] No tab or toast on attempt " + attempt + " — retrying click");
             }
             scrollTo(previewJourneyButton);
             jsClick(previewJourneyButton);

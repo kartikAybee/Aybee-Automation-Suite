@@ -9,6 +9,9 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.FluentWait;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.concurrent.TimeUnit;
 
 public abstract class BasePage {
@@ -272,6 +275,61 @@ public abstract class BasePage {
         WebElement el = findById(id);
         if (el == null) return false;
         try { return el.isDisplayed(); } catch (Exception e) { return false; }
+    }
+
+    // ── File upload helpers ───────────────────────────────────────────────────
+
+    // Derives a MIME type from the file extension so callers don't hardcode it.
+    protected static String mimeTypeFrom(String filePath) {
+        String lower = filePath.toLowerCase();
+        if (lower.endsWith(".svg"))  return "image/svg+xml";
+        if (lower.endsWith(".png"))  return "image/png";
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+        if (lower.endsWith(".gif"))  return "image/gif";
+        if (lower.endsWith(".webp")) return "image/webp";
+        return "application/octet-stream";
+    }
+
+    // ── QAT uploader (BEP Multi File Uploader) ───────────────────────────────
+    // sendKeys on a hidden <input type="file"> already present in the DOM inside
+    // the container. Works because the input is opacity:0, not display:none.
+    protected void uploadFileToInput(By containerLocator, String absoluteFilePath) {
+        WebElement container = wait.until(ExpectedConditions.presenceOfElementLocated(containerLocator));
+        container.findElement(By.cssSelector("input[type='file']")).sendKeys(absoluteFilePath);
+    }
+
+    // ── Form Questions uploader (custom drag-drop plugin) ─────────────────────
+    // JS DataTransfer with real file content.
+    // Reads the file from disk in Java, passes the content string to JS, and creates a
+    // proper File object so the server receives actual bytes — not an empty payload.
+    // Fires the full dragenter → dragover → drop lifecycle on the drop zone.
+    protected void uploadFileViaDataTransfer(By dropZoneLocator, String absoluteFilePath, String mimeType) {
+        String fileName = absoluteFilePath.substring(absoluteFilePath.lastIndexOf('/') + 1);
+        System.out.println("[FileUpload] Approach 3 — JS DataTransfer with real content: " + fileName);
+        String base64Content;
+        try {
+            byte[] bytes = Files.readAllBytes(Paths.get(absoluteFilePath));
+            base64Content = Base64.getEncoder().encodeToString(bytes);
+        } catch (Exception e) {
+            throw new RuntimeException("[FileUpload] Could not read file: " + absoluteFilePath, e);
+        }
+        WebElement dropZone = wait.until(ExpectedConditions.presenceOfElementLocated(dropZoneLocator));
+        ((JavascriptExecutor) driver).executeScript(
+            "var zone   = arguments[0];" +
+            "var b64    = arguments[1];" +
+            "var name   = arguments[2];" +
+            "var mime   = arguments[3];" +
+            "var bytes  = atob(b64);" +
+            "var arr    = new Uint8Array(bytes.length);" +
+            "for(var i=0;i<bytes.length;i++) arr[i]=bytes.charCodeAt(i);" +
+            "var file = new File([arr], name, {type: mime});" +
+            "var dt   = new DataTransfer();" +
+            "dt.items.add(file);" +
+            "['dragenter','dragover','drop'].forEach(function(t) {" +
+            "  zone.dispatchEvent(new DragEvent(t, {bubbles:true, cancelable:true, dataTransfer:dt}));" +
+            "});",
+            dropZone, base64Content, fileName, mimeType);
+        System.out.println("[FileUpload] DataTransfer dispatched (" + base64Content.length() + " base64 chars)");
     }
 
     // ── Data normalisation helpers ────────────────────────────────────────────

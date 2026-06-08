@@ -786,6 +786,11 @@ public class FormQuestionsPage extends BasePage {
         };
         int retriggerIdx = 0;
 
+        // Click free-question-1 to trigger a Bubble.io DB validation pass before preview,
+        // giving the backend time to mark all questions complete and clear any stale incomplete state.
+        jsClick(By.id("free-question-1"));
+        try { Thread.sleep(3000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+
         scrollTo(previewJourneyButton);
         jsClick(previewJourneyButton);
 

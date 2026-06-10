@@ -1,6 +1,7 @@
 package com.aybee.pages;
 
 import com.aybee.driver.DriverManager;
+import com.aybee.utils.DiagnosticsCollector;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.StaleElementReferenceException;
@@ -54,6 +55,7 @@ public abstract class BasePage {
     // Retries on StaleElementReferenceException — Bubble.io re-renders the DOM reactively,
     // which can invalidate a found element before the click fires.
     protected void click(By locator) {
+        DiagnosticsCollector.recordAction("click: " + locator);
         int attempts = 0;
         while (attempts < 3) {
             try {
@@ -68,6 +70,7 @@ public abstract class BasePage {
     // JS click bypasses elementToBeClickable — used for Bubble.io Text elements with
     // width:0px (blur targets) and elements obscured by overlapping Bubble.io containers.
     protected void jsClick(By locator) {
+        DiagnosticsCollector.recordAction("jsClick: " + locator);
         WebElement el = wait.until(ExpectedConditions.presenceOfElementLocated(locator));
         ((JavascriptExecutor) driver).executeScript("arguments[0].click();", el);
     }
@@ -80,6 +83,10 @@ public abstract class BasePage {
 
     // Retries on StaleElementReferenceException for same reason as click().
     protected void type(By locator, String text) {
+        // Mask passwords; truncate long text so the action log stays readable.
+        String display = locator.toString().contains("password") ? "***"
+            : (text != null && text.length() > 60 ? text.substring(0, 60) + "…" : text);
+        DiagnosticsCollector.recordAction("type: " + locator + " → " + display);
         int attempts = 0;
         while (attempts < 3) {
             try {
@@ -160,6 +167,7 @@ public abstract class BasePage {
     // Regular .click() can be swallowed by Bubble.io's event system after the colour check
     // passes — JS click dispatches the event directly on the element, bypassing that gap.
     protected void clickWhenEnabled(By locator) {
+        DiagnosticsCollector.recordAction("clickWhenEnabled: " + locator);
         new WebDriverWait(driver, 15).until(d -> isButtonEnabled(locator));
         int attempts = 0;
         while (attempts < 3) {

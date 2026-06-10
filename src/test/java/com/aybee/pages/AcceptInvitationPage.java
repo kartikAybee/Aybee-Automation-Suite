@@ -3,6 +3,7 @@ package com.aybee.pages;
 import io.qameta.allure.Step;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.UnhandledAlertException;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
@@ -31,10 +32,19 @@ public class AcceptInvitationPage extends BasePage {
         // For already-registered emails Bubble.io permanently blocks client-side
         // validation — the button never reaches the visual enabled state.
         // Fall back to jsClick so the server still processes and returns the error.
+        // UnhandledAlertException means the click worked and the server immediately
+        // returned a native alert — swallow it so getAndDismissAlreadyRegisteredAlert()
+        // can retrieve and verify it in the next step.
         try {
             clickWhenEnabled(acceptButton);
+        } catch (UnhandledAlertException ignored) {
+            // alert is now open and waiting — handled in the next step
         } catch (Exception e) {
-            jsClick(acceptButton);
+            try {
+                jsClick(acceptButton);
+            } catch (UnhandledAlertException ignored) {
+                // same — alert opened as a result of the click, which is expected
+            }
         }
     }
 
@@ -75,14 +85,15 @@ public class AcceptInvitationPage extends BasePage {
         }
     }
 
-    // Returns the error text for an already-registered submission — checks native browser
-    // alert first (older Bubble.io behaviour), then falls back to the page toast.
+    // Returns the error text for an already-registered submission — waits for a native
+    // browser alert first (Bubble.io behaviour), then falls back to the page toast.
     public String getAndDismissAlreadyRegisteredAlert() {
         try {
+            new WebDriverWait(driver, 10).until(ExpectedConditions.alertIsPresent());
             var alert = driver.switchTo().alert();
             String text = alert.getText();
-            alert.dismiss();
-            if (text != null && !text.isEmpty()) return text;
+            alert.accept();
+            return text != null ? text : "";
         } catch (Exception ignored) {}
         return getNotificationText();
     }

@@ -2,9 +2,13 @@ package com.aybee.driver;
 
 import com.aybee.utils.ConfigReader;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.logging.LogType;
+import org.openqa.selenium.logging.LoggingPreferences;
+import org.openqa.selenium.remote.CapabilityType;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 
 public class BrowserSetup {
 
@@ -46,6 +50,12 @@ public class BrowserSetup {
         prefs.put("profile.content_settings.exceptions.clipboard-read-write", clipboardExceptions);
 
         options.setExperimentalOption("prefs", prefs);
+
+        // Enable browser console + CDP network log capture for DiagnosticsCollector.
+        LoggingPreferences logPrefs = new LoggingPreferences();
+        logPrefs.enable(LogType.BROWSER,     Level.ALL);
+        logPrefs.enable(LogType.PERFORMANCE, Level.ALL);
+        options.setCapability(CapabilityType.LOGGING_PREFS, logPrefs);
 
         return options;
     }

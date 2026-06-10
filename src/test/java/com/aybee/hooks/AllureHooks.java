@@ -2,6 +2,8 @@ package com.aybee.hooks;
 
 import com.aybee.context.ScenarioContext;
 import com.aybee.driver.DriverManager;
+import com.aybee.utils.DiagnosticsCollector;
+import com.aybee.utils.JamManager;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
 import io.cucumber.java.Scenario;
@@ -20,8 +22,16 @@ public class AllureHooks {
     }
 
     @Before
-    public void setUp() {
+    public void setUp(Scenario scenario) {
         DriverManager.getDriver();
+        long nowMs = System.currentTimeMillis();
+        // Derive a short label from the @caseN tag for the recording filename; fall back to "scenario".
+        String label = scenario.getSourceTagNames().stream()
+            .filter(t -> t.startsWith("@case"))
+            .map(t -> t.replace("@", ""))
+            .findFirst().orElse("scenario");
+        JamManager.startRecording(label);
+        DiagnosticsCollector.reset(nowMs);
     }
 
     @After
@@ -39,6 +49,18 @@ public class AllureHooks {
                         .getScreenshotAs(OutputType.BYTES);
                 Allure.addAttachment("Failure Screenshot", new ByteArrayInputStream(screenshot));
             } catch (Exception ignored) {}
+
+            if (JamManager.isEnabled()) {
+                String pageUrl = "";
+                try { pageUrl = DriverManager.getDriver().getCurrentUrl(); } catch (Exception ignored) {}
+                String diagnostics = DiagnosticsCollector.collectAndFormat(DriverManager.getDriver());
+                String jamUrl = JamManager.stopAndUpload(pageUrl, scenario.getName(), diagnostics);
+                if (jamUrl != null) {
+                    Allure.addAttachment("Jam Recording", "text/plain", jamUrl);
+                }
+            }
+        } else {
+            JamManager.discardRecording();
         }
 
         if (softFailure != null) throw softFailure;

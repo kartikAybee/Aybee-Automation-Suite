@@ -2,10 +2,13 @@ package com.aybee.driver;
 
 import com.aybee.utils.ConfigReader;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.logging.LogType;
+import org.openqa.selenium.logging.LoggingPreferences;
+import org.openqa.selenium.remote.CapabilityType;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 
 public class BrowserSetup {
 
@@ -48,15 +51,11 @@ public class BrowserSetup {
 
         options.setExperimentalOption("prefs", prefs);
 
-        // Jam.dev extension — loaded only when JAM_EXTENSION_PATH is set in config.properties.
-        // Leave the path blank to run without recording; all call sites remain intact.
-        String jamPath = ConfigReader.get("JAM_EXTENSION_PATH", "");
-        if (!jamPath.isBlank()) {
-            File ext = new File(jamPath);
-            if (ext.exists()) {
-                options.addExtensions(ext);
-            }
-        }
+        // Enable browser console + CDP network log capture for DiagnosticsCollector.
+        LoggingPreferences logPrefs = new LoggingPreferences();
+        logPrefs.enable(LogType.BROWSER,     Level.ALL);
+        logPrefs.enable(LogType.PERFORMANCE, Level.ALL);
+        options.setCapability(CapabilityType.LOGGING_PREFS, logPrefs);
 
         return options;
     }

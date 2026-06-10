@@ -3,6 +3,7 @@ package com.aybee.hooks;
 import com.aybee.context.GlobalTestState;
 import com.aybee.context.ScenarioContext;
 import com.aybee.driver.DriverManager;
+import com.aybee.utils.DiagnosticsCollector;
 import com.aybee.utils.JamManager;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
@@ -22,9 +23,16 @@ public class AllureHooks {
     }
 
     @Before
-    public void setUp() {
+    public void setUp(Scenario scenario) {
         DriverManager.getDriver();
-        JamManager.startRecording();
+        long nowMs = System.currentTimeMillis();
+        // Derive a short label from the @caseN tag for the recording filename.
+        String label = scenario.getSourceTagNames().stream()
+            .filter(t -> t.startsWith("@case"))
+            .map(t -> t.replace("@", ""))
+            .findFirst().orElse("scenario");
+        JamManager.startRecording(label);
+        DiagnosticsCollector.reset(nowMs);
         // Restore persistent cross-scenario state (preview URL, product snapshots, etc.)
         // into the fresh PicoContainer-scoped context so subsequent feature files can use it.
         GlobalTestState.restoreInto(context);
@@ -49,7 +57,10 @@ public class AllureHooks {
                 Allure.addAttachment("Failure Screenshot", new ByteArrayInputStream(screenshot));
             } catch (Exception ignored) {}
 
-            String jamUrl = JamManager.stopAndGetLink();
+            String pageUrl = "";
+            try { pageUrl = DriverManager.getDriver().getCurrentUrl(); } catch (Exception ignored) {}
+            String diagnostics = DiagnosticsCollector.collectAndFormat(DriverManager.getDriver());
+            String jamUrl = JamManager.stopAndUpload(pageUrl, scenario.getName(), diagnostics);
             if (jamUrl != null) {
                 Allure.addAttachment("Jam Recording", "text/plain", jamUrl);
             }

@@ -10,74 +10,69 @@ import java.util.concurrent.TimeUnit;
  * Records each scenario with ffmpeg and, on failure, uploads the MP4 via the `jam` CLI,
  * adds a diagnostics comment, and returns the shareable URL. On pass the video is deleted.
  *
- * Gated by the JAM_ENABLED config flag — when false, every method no-ops so the suite runs
- * unaffected. ffmpeg and the `jam` CLI are assumed pre-installed on PATH when enabled.
+ * Gated by the JAM_UPLOAD_ENABLED config flag — when false, every method no-ops so the suite
+ * runs unaffected. ffmpeg and the `jam` CLI are assumed pre-installed on PATH when enabled.
  *
  * Static state is fine because scenarios run sequentially (one recording at a time).
  */
 public class JamManager {
 
+    // Set JAM_UPLOAD_ENABLED=true in config.properties to activate recording and upload.
+    // Default is false so normal test runs stay fast and don't fill disk.
+    private static final boolean ENABLED = ConfigReader.getBoolean("JAM_UPLOAD_ENABLED", false);
+
     private static Process recordingProcess;
     private static String  currentVideoPath;
 
-    // Read once per scenario in startRecording so stop/discard agree with start.
-    public static boolean isEnabled() {
-        return ConfigReader.getBoolean("JAM_ENABLED", false);
-    }
-
     // ── Recording ─────────────────────────────────────────────────────────────
 
-    // No-arg overload kept so existing call sites that don't have a label still compile.
     public static void startRecording() {
         startRecording("scenario");
     }
 
     public static void startRecording(String label) {
-        if (!isEnabled()) {
-            recordingProcess = null;
-            currentVideoPath = null;
-            return;
-        }
+        if (!ENABLED) return;
         try {
             Files.createDirectories(Paths.get("target/recordings"));
-            String filename  = System.currentTimeMillis() + "_"
-                + label.replaceAll("[^a-zA-Z0-9_-]", "_") + ".mp4";
+            String filename  = System.currentTimeMillis() + "_" + label.replaceAll("[^a-zA-Z0-9_-]", "_") + ".mp4";
             currentVideoPath = Paths.get("target/recordings", filename).toAbsolutePath().toString();
 
             ProcessBuilder pb = new ProcessBuilder(
                 "ffmpeg",
                 "-f",         "avfoundation",
                 "-framerate", "30",
-                "-i",         "1",            // display 1 — main screen (macOS avfoundation)
+                "-i",         "1",
                 "-vcodec",    "libx264",
-                "-preset",    "ultrafast",    // keep CPU load low during the test run
+                "-preset",    "ultrafast",
                 "-pix_fmt",   "yuv420p",
                 "-y",         currentVideoPath
             );
-            // Suppress ffmpeg output so it doesn't pollute the test log.
             pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
             pb.redirectError(ProcessBuilder.Redirect.DISCARD);
             recordingProcess = pb.start();
             System.out.println("[Jam] Recording started → " + currentVideoPath);
         } catch (Exception e) {
             System.out.println("[Jam] Could not start recording: " + e.getMessage());
-            recordingProcess = null;
-            currentVideoPath = null;
+            recordingProcess  = null;
+            currentVideoPath  = null;
         }
     }
 
     // ── Jam upload ────────────────────────────────────────────────────────────
 
-    // Backward-compat no-arg overload — delegates to the three-arg version.
     public static String stopAndGetLink() {
         return stopAndUpload("", "Test failure", "");
     }
 
     public static String stopAndUpload(String pageUrl, String title, String comment) {
+        if (!ENABLED) return null;
         stopRecording();
+
         if (currentVideoPath == null || !new File(currentVideoPath).exists()) {
+            System.out.println("[Jam] No video file found — skipping upload.");
             return null;
         }
+
         try {
             String json   = buildJamJson(pageUrl, title, currentVideoPath);
             String output = runCommand(60, "jam", "create", "jam", json);
@@ -85,7 +80,10 @@ public class JamManager {
 
             String jamId  = extractJsonString(output, "id");
             String jamUrl = extractJsonString(output, "url");
-            if (jamId != null) addComment(jamId, comment);
+
+            if (jamId != null) {
+                addComment(jamId, comment);
+            }
 
             currentVideoPath = null;
             return jamUrl;
@@ -96,6 +94,7 @@ public class JamManager {
     }
 
     public static void addComment(String jamId, String comment) {
+        if (!ENABLED) return;
         try {
             runCommand(30, "jam", "create", "comment", jamId, comment);
             System.out.println("[Jam] Comment added to " + jamId);
@@ -104,8 +103,9 @@ public class JamManager {
         }
     }
 
-    // On pass — stop and discard so disk isn't filled with passing-run footage.
+    // On pass — stop and discard video so disk isn't filled with passing-run footage.
     public static void discardRecording() {
+        if (!ENABLED) return;
         stopRecording();
         if (currentVideoPath != null) {
             try { Files.deleteIfExists(Paths.get(currentVideoPath)); } catch (Exception ignored) {}
@@ -121,7 +121,9 @@ public class JamManager {
                 // 'q' on stdin is ffmpeg's graceful-stop signal — finalises the MP4 container.
                 recordingProcess.getOutputStream().write('q');
                 recordingProcess.getOutputStream().flush();
-                if (!recordingProcess.waitFor(15, TimeUnit.SECONDS)) recordingProcess.destroy();
+                if (!recordingProcess.waitFor(15, TimeUnit.SECONDS)) {
+                    recordingProcess.destroy();
+                }
             } catch (Exception e) {
                 recordingProcess.destroy();
             }

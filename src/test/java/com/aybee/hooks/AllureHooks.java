@@ -50,14 +50,12 @@ public class AllureHooks {
                 Allure.addAttachment("Failure Screenshot", new ByteArrayInputStream(screenshot));
             } catch (Exception ignored) {}
 
-            if (JamManager.isEnabled()) {
-                String pageUrl = "";
-                try { pageUrl = DriverManager.getDriver().getCurrentUrl(); } catch (Exception ignored) {}
-                String diagnostics = DiagnosticsCollector.collectAndFormat(DriverManager.getDriver());
-                String jamUrl = JamManager.stopAndUpload(pageUrl, scenario.getName(), diagnostics);
-                if (jamUrl != null) {
-                    Allure.addAttachment("Jam Recording", "text/plain", jamUrl);
-                }
+            String pageUrl = "";
+            try { pageUrl = DriverManager.getDriver().getCurrentUrl(); } catch (Exception ignored) {}
+            String diagnostics = DiagnosticsCollector.collectAndFormat(DriverManager.getDriver());
+            String jamUrl = JamManager.stopAndUpload(pageUrl, scenario.getName(), diagnostics);
+            if (jamUrl != null) {
+                Allure.addAttachment("Jam Recording", "text/plain", jamUrl);
             }
         } else {
             JamManager.discardRecording();

@@ -512,8 +512,12 @@ public class FormQuestionsPage extends BasePage {
         return this;
     }
 
-    // Clicks every product chip whose ID contains any significant word from nameA or nameB.
-    // IDs use a partial/truncated form of the displayed name so we match word-by-word.
+    // Selects the bought-product chips for both scenarios. The Filter by Scenario tab has two
+    // sections — Scenario Names and Products — and you may select from only ONE section, but
+    // MULTIPLE entries within it. Selecting both products (one per scenario) keeps the filter
+    // from being reliant on a single scenario. Each element is clicked at most once (the OR is
+    // evaluated per chip), so a chip whose truncated id matches both names is not toggled off.
+    // IDs are a partial/truncated form of the displayed name, so we match word-by-word.
     @Step("Select specific bought products for scenario A and B")
     public FormQuestionsPage selectSpecificBoughtProduct(String nameA, String nameB) {
         List<WebElement> products = wait.until(
@@ -538,6 +542,49 @@ public class FormQuestionsPage extends BasePage {
             if (word.length() > 2 && id.contains(word.toLowerCase())) return true;
         }
         return false;
+    }
+
+    // ── Section mutual-exclusion ───────────────────────────────────────────────
+    // The Filter by Scenario tab has two sections — Scenario Names and Products — and only ONE
+    // may have selections at a time. A chip is "selected" when Bubble adds an inline border to
+    // its #id element (style contains "border-width"); unselected chips have no style attribute.
+    // We clear the opposite section before selecting in the intended one so the two never mix.
+
+    // Clears any selected Scenario Names chips — call before selecting Products.
+    @Step("Clear any selected scenarios (keep only the Products section active)")
+    public FormQuestionsPage clearScenarioSelection() {
+        for (String id : new String[]{"scenario-A", "scenario-B"}) {
+            deselectIfSelected(By.id(id));
+        }
+        return this;
+    }
+
+    // Clears any selected Product chips — call before selecting Scenario Names.
+    @Step("Clear any selected products (keep only the Scenario Names section active)")
+    public FormQuestionsPage clearProductSelection() {
+        for (WebElement el : driver.findElements(By.cssSelector("[id^='specific-product-']"))) {
+            if (isChipSelected(el)) {
+                ((JavascriptExecutor) driver).executeScript("arguments[0].click();", el);
+            }
+        }
+        return this;
+    }
+
+    private void deselectIfSelected(By locator) {
+        List<WebElement> els = driver.findElements(locator);
+        if (els.isEmpty()) return;
+        WebElement el = els.get(0);
+        if (isChipSelected(el)) {
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", el);
+        }
+    }
+
+    // Selected chips carry an inline border (style="border-width: 2px; ...") on their #id element;
+    // unselected chips have no style attribute. This is more reliable than computed border-width,
+    // which CSS reports as 0 when border-style is unset.
+    private boolean isChipSelected(WebElement el) {
+        String style = el.getAttribute("style");
+        return style != null && style.contains("border-width");
     }
 
     @Step("Click Filter by Responses tab")

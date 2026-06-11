@@ -129,7 +129,11 @@ public class ParticipantFormPage extends BasePage {
 
         // D3 is always shown regardless of which product was bought.
         // Q1, Q2, Q6 are always shown for participants who bought our product.
-        List<String> alwaysExpected = Arrays.asList(D3_TITLE, Q1_TITLE, Q2_TITLE, Q6_TITLE);
+        // Q3, Q4, Q5 each select both options in their filter section (both products / both
+        // scenarios), so they appear in both scenarios. Q4's Show=Specific Product (Scenario A)
+        // only controls which product is displayed — it still appears for Scenario B too.
+        List<String> alwaysExpected = Arrays.asList(
+            D3_TITLE, Q1_TITLE, Q2_TITLE, Q3_TITLE, Q4_TITLE, Q5_TITLE, Q6_TITLE);
         java.util.Set<String> seenTitles = new java.util.HashSet<>();
 
         // 3 default + up to 6 user-configured = 9 total; 12 gives margin for any extras.
@@ -155,11 +159,9 @@ public class ParticipantFormPage extends BasePage {
                 sa.fail("[ParticipantForm] Expected question not shown: " + expected);
             }
         }
-        // Q5 is Scenario A only — fail if it was absent when it should have appeared.
-        boolean q5Seen = seenTitles.stream().anyMatch(t -> t.contains(Q5_TITLE) || Q5_TITLE.contains(t));
-        if ("A".equals(currentScenario) && !q5Seen) {
-            sa.fail("[ParticipantForm] Horizontal Likert (Q5) not shown for Scenario A participant");
-        }
+        // Q3, Q4 and Q5 each select both options within their filter section, so they appear in
+        // both scenarios and are covered by the alwaysExpected check above — no per-scenario
+        // assertion is needed.
 
         sa.assertAll();
     }

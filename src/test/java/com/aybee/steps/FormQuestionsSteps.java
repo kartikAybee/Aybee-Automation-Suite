@@ -103,8 +103,9 @@ public class FormQuestionsSteps {
     // Show: Bought Product
     // Answers: Excellent value(random), Good value(random), Fair value(random OFF),
     //          Poor value → deleted (tests delete answer option)
-    // Filter: Scenario tab → Specific Bought Product
+    // Filter: Scenario tab → Products section → BOTH products (one per scenario, multi-select)
     //       + Responses tab → add Q2 → select answer → delete → re-add Q2 → select 2 answers
+    //       Selecting both products keeps it visible in both scenarios (not reliant on one).
 
     @And("I add a single choice form question {string}")
     public void iAddSingleChoiceFormQuestion(String questionText) {
@@ -123,9 +124,14 @@ public class FormQuestionsSteps {
             .enableRandomizeToggle(Q3_IDX)
             .disableRandomizeForAnswer(Q3_IDX, 3)
             .deleteAnswer(Q3_IDX, 4)
-            // Filter — both tabs active (combo filter).
+            // Filter — Products section (both products) + Responses tab. The Filter by Scenario
+            // tab has two sections (Scenario Names / Products); you may pick from only ONE section
+            // but multiple within it. We pick both products so the question covers both scenarios.
+            // The Responses tab is a separate tab (keyed off prior answers), so combining it with
+            // a Products-section selection is fine — it is not the prohibited scenario+product mix.
             .openFilterSidebar(Q3_IDX)
             .clickFilterByScenarioTab()
+            .clearScenarioSelection()   // ensure Scenario Names section is empty — Products only
             .selectSpecificBoughtProduct(context.scenarioAProductName, context.scenarioBProductName)
             .clickFilterByResponseTab()
             // Add Q2 → select one answer → delete the entry → re-add Q2 → select two answers.
@@ -143,12 +149,12 @@ public class FormQuestionsSteps {
     }
 
     // ── Q4 — Multiple Choice ──────────────────────────────────────────────────
-    // Show: Specific Product → CORSAIR Nautilus
+    // Show: Specific Product → Scenario A's product (single-select dropdown)
     // Answers: Price lower(random), Proven quality(random),
     //          Trusted brand(random OFF), Would not repurchase(exclusive, random OFF),
     //          Better warranty terms → deleted (tests delete answer option)
-    // Filter: Scenario tab → Specific Bought Product
-    //       + Responses tab → add Q2(collapse) + add Q3 → apply (multiple questions combo)
+    // Filter: Scenario tab → Products section → BOTH products (multi-select, both scenarios)
+    //       + Responses tab → add Q2(collapse) + add Q3 → apply (response filters are scenario-independent)
 
     @And("I add a multiple choice form question {string}")
     public void iAddMultipleChoiceFormQuestion(String questionText) {
@@ -172,9 +178,12 @@ public class FormQuestionsSteps {
             .disableRandomizeForAnswer(Q4_IDX, 3)
             .disableRandomizeForAnswer(Q4_IDX, 4)
             .deleteAnswer(Q4_IDX, 5)
-            // Filter — both tabs active (combo filter).
+            // Filter — Products section (both products, multi-select) + Responses tab. Selecting
+            // both products keeps the filter covering both scenarios. The Responses-tab filters
+            // below are independent — they key off prior question answers, not scenario/product.
             .openFilterSidebar(Q4_IDX)
             .clickFilterByScenarioTab()
+            .clearScenarioSelection()   // ensure Scenario Names section is empty — Products only
             .selectSpecificBoughtProduct(context.scenarioAProductName, context.scenarioBProductName)
             .clickFilterByResponseTab()
             .clickAddFilterQuestion(1)
@@ -192,9 +201,9 @@ public class FormQuestionsSteps {
     // Show: Uploaded Asset → upload pringles.svg
     // Scale: Horizontal
     // 6 auto-generated options → delete last (index 6) to test delete
-    // Filter: Scenario tab only → Whole Scenario (Scenario A)
-    //         Covers: scenario-only filter (no Responses tab) + Whole Scenario selection —
-    //         both combos were originally on Q1/Q2 but dropped when those lost their filter icons.
+    // Filter: Scenario tab → Scenario Names section → BOTH scenarios (A and B, multi-select)
+    //         Covers: scenario-section filter (no Responses tab) with multiple selections —
+    //         selecting both scenarios keeps the question visible in both (not reliant on one).
 
     @And("I add a horizontal likert form question {string}")
     public void iAddHorizontalLikertFormQuestion(String questionText) {
@@ -210,7 +219,9 @@ public class FormQuestionsSteps {
             .deleteAnswer(Q5_IDX, 6)
             .openFilterSidebar(Q5_IDX)
             .clickFilterByScenarioTab()
+            .clearProductSelection()    // ensure Products section is empty — Scenario Names only
             .selectScenario("scenario-A")
+            .selectScenario("scenario-B")
             .applyFilters();
     }
 

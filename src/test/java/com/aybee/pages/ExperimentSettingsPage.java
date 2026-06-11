@@ -17,9 +17,9 @@ public class ExperimentSettingsPage extends BasePage {
     // the .ql-editor child inside it. By.id() reaches the container; findElement()
     // scopes the ql-editor lookup within it — no global CSS selector needed.
     private final By quillContainer      = By.id("richtext-editor-0");
-    // Clicking group-qz-title fires blur on the Quill editor, which triggers Bubble.io's
-    // reactive validation and transitions the continue button from ghost → enabled.
-    private final By sectionTitle        = By.id("group-qz-title");
+    // A real (native) click on qz-title-text moves focus off the Quill editor, firing its
+    // blur event so Bubble's reactive validation runs and enables the continue button.
+    private final By titleText           = By.id("qz-title-text");
     private final By continueButton      = By.id("marketplacesimulation_testsettings_continue_button");
     private final By addBqButton         = By.id("btn-add-bq-1");
     private final By nextProjectButton   = By.id("btn-next-project");
@@ -41,16 +41,12 @@ public class ExperimentSettingsPage extends BasePage {
         return this;
     }
 
-    // jsClick() is used because group-qz-title is a Bubble.io Text element that may have
-    // width:0px or be partially obscured — the same reason jsClick() is used for toggles.
-    @Step("Click section title to blur Quill editor and enable continue button")
-    public ExperimentSettingsPage clickTitleToEnableContinue() {
-        jsClick(sectionTitle);
-        return this;
-    }
-
     @Step("Click Continue to generate business questions")
     public ExperimentSettingsPage clickContinue() {
+        // Real click on qz-title-text once it's clickable — this moves focus off the Quill
+        // editor and fires its blur, which is what Bubble's reactive validation listens for to
+        // enable the continue button. A JS click wouldn't move focus, so a native click is used.
+        click(titleText);
         clickWhenEnabled(continueButton);
         // btn-add-bq-1 appearing confirms the AI generated the first business question.
         wait.until(ExpectedConditions.visibilityOfElementLocated(addBqButton));

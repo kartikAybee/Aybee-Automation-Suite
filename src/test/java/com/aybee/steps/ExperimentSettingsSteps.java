@@ -17,8 +17,7 @@ public class ExperimentSettingsSteps {
 
     @And("I enter the study objective")
     public void iEnterTheStudyObjective() {
-        settingsPage.enterStudyObjective(STUDY_OBJECTIVE)
-                    .clickTitleToEnableContinue();
+        settingsPage.enterStudyObjective(STUDY_OBJECTIVE);
     }
 
     @And("I click continue to generate business questions")

@@ -33,7 +33,7 @@ public class ShopSetupPage extends BasePage {
 
     @Step("Click Add New Product")
     public ShopSetupPage clickAddNewProduct() {
-        wait.until(ExpectedConditions.visibilityOfElementLocated(addNewProductButton));
+        wait.until(ExpectedConditions.elementToBeClickable(addNewProductButton));
         jsClick(addNewProductButton);
         wait.until(ExpectedConditions.visibilityOfElementLocated(addViaSearchMenuItem));
         return this;
@@ -119,6 +119,34 @@ public class ShopSetupPage extends BasePage {
     @Step("Delete main picture of second scenario")
     public ShopSetupPage deleteMainPicture() {
         jsClick(deleteMainPicButton);
+        return this;
+    }
+
+    // CTR-specific: deleting the first picture triggers a Bubble.io bug that clears all popup
+    // fields. Re-enter the exact Scenario A name and price so both scenarios are identical
+    // except for the image — the visual element being optimised in CTR tests.
+    @Step("Restore Scenario A name after picture delete (CTR — only image differs)")
+    public ShopSetupPage restoreScenarioAFields(ProductSnapshot scenarioA) {
+        WebElement nameInput = new WebDriverWait(driver, 30)
+                .until(ExpectedConditions.visibilityOfElementLocated(productNameField));
+        ((JavascriptExecutor) driver).executeScript(
+                "arguments[0].scrollIntoView({behavior:'instant',block:'center'});", nameInput);
+        nameInput.clear();
+        nameInput.sendKeys(scenarioA.truncatedName);
+        final String expectedName = scenarioA.truncatedName;
+        try {
+            new WebDriverWait(driver, 5).until(d -> {
+                String v = d.findElement(productNameField).getAttribute("value");
+                return expectedName.equals(v);
+            });
+        } catch (Exception e) {
+            System.out.println("[ShopSetup CTR] Name did not persist — re-typing: " + expectedName);
+            WebElement retry = driver.findElement(productNameField);
+            retry.clear();
+            retry.sendKeys(expectedName);
+        }
+        capturedScenarioAName = scenarioA.truncatedName;
+        capturedScenarioBName = scenarioA.truncatedName;
         return this;
     }
 
@@ -218,23 +246,30 @@ public class ShopSetupPage extends BasePage {
     @Step("Save scenario changes")
     public ShopSetupPage saveChanges() {
         // Guard: Bubble.io reactive events (picture deletion, price entry) can reset the
-        // name field after removeFirstWordFromProductName() typed it. Re-type before saving
-        // so the backend never receives an empty Scenario B name.
+        // name field. Blur first to flush any in-flight reactive events, then verify and
+        // re-type up to 3 times before proceeding to the save click.
         if (capturedScenarioBName != null && !capturedScenarioBName.isEmpty()) {
+            blurActiveElement();
+            try { Thread.sleep(500); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
             try {
-                String currentName = driver.findElement(productNameField).getAttribute("value");
-                if (currentName == null || currentName.trim().isEmpty()) {
-                    System.out.println("[ShopSetup] Scenario B name was cleared before save — re-typing: " + capturedScenarioBName);
-                    WebElement nameInput = wait.until(ExpectedConditions.visibilityOfElementLocated(productNameField));
+                for (int attempt = 1; attempt <= 3; attempt++) {
+                    String currentName = driver.findElement(productNameField).getAttribute("value");
+                    if (currentName != null && currentName.trim().equals(capturedScenarioBName)) {
+                        System.out.println("[ShopSetup] Scenario B name confirmed before save: " + currentName);
+                        break;
+                    }
+                    System.out.println("[ShopSetup] Scenario B name missing before save (attempt "
+                        + attempt + ") — re-typing: " + capturedScenarioBName);
+                    WebElement nameInput = wait.until(
+                        ExpectedConditions.visibilityOfElementLocated(productNameField));
                     nameInput.clear();
                     nameInput.sendKeys(capturedScenarioBName);
                     blurActiveElement();
-                    try { Thread.sleep(1000); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
-                } else {
-                    System.out.println("[ShopSetup] Scenario B name confirmed before save: " + currentName);
+                    try { Thread.sleep(800); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
                 }
             } catch (Exception e) {
-                System.out.println("[ShopSetup] Could not verify Scenario B name before save: " + e.getMessage());
+                System.out.println("[ShopSetup] Could not verify/restore Scenario B name before save: "
+                    + e.getMessage());
             }
         }
 

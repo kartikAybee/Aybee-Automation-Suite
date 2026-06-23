@@ -21,9 +21,9 @@ import java.util.concurrent.TimeUnit;
 
 public class FormQuestionsPage extends BasePage {
 
-    // Questions 1–3 are pre-added by the platform and always present.
-    // Manually added questions start at index 4 and use that index for ALL element IDs.
-    public static final int FIRST_QUESTION_INDEX = 4;
+    // CTR experiments have 2 pre-added questions (indices 1–2). Manually added questions
+    // would start at index 3 — stored for future use; no manual additions in CTR tests.
+    public static final int FIRST_QUESTION_INDEX = 3;
 
     private final By addQuestionButton    = By.id("newproject_formquestions_addquestion_button");
     private final By addManuallyButton    = By.id("add-manually-btn");
@@ -51,6 +51,53 @@ public class FormQuestionsPage extends BasePage {
         ((JavascriptExecutor) driver).executeScript(
             "arguments[0].scrollIntoView({behavior: 'instant', block: 'center'});", el);
         return el;
+    }
+
+    // ── CTR page load validation ──────────────────────────────────────────────
+
+    // Waits for the add-question button to be clickable (page initial load), reloads
+    // so Bubble.io fully renders both pre-added question cards, then waits again.
+    @Step("Wait for form questions page to load, reload, then verify all questions are rendered")
+    public FormQuestionsPage waitForFormQuestionsPageLoaded() {
+        new WebDriverWait(driver, 45)
+                .until(ExpectedConditions.elementToBeClickable(addQuestionButton));
+        driver.navigate().refresh();
+        new WebDriverWait(driver, 45)
+                .until(ExpectedConditions.elementToBeClickable(addQuestionButton));
+        // Extra settle time for Bubble.io to finish rendering all pre-added question cards
+        // after the button becomes clickable — cards appear asynchronously after the button.
+        try { Thread.sleep(3000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        return this;
+    }
+
+    // Clicks the preview journey button, waits for a new tab to open, captures the URL,
+    // closes the tab, and returns the URL. No choice-question retrigger needed for CTR
+    // since the 2 pre-added questions are long-text type with no answer options to validate.
+    @Step("Click Preview Journey button and capture preview URL (CTR)")
+    public String clickPreviewAndGetUrlCtr() {
+        try { Thread.sleep(2000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        String mainWindow = driver.getWindowHandle();
+        scrollTo(previewJourneyButton);
+        jsClick(previewJourneyButton);
+        new WebDriverWait(driver, 30).until(d -> d.getWindowHandles().size() > 1);
+        String previewUrl = null;
+        for (String handle : driver.getWindowHandles()) {
+            if (!handle.equals(mainWindow)) {
+                driver.switchTo().window(handle);
+                new WebDriverWait(driver, 30).until(d ->
+                    d.getCurrentUrl() != null
+                    && !d.getCurrentUrl().isEmpty()
+                    && !d.getCurrentUrl().equals("about:blank"));
+                previewUrl = driver.getCurrentUrl();
+                driver.close();
+                driver.switchTo().window(mainWindow);
+                break;
+            }
+        }
+        if (previewUrl == null) {
+            throw new RuntimeException("[CTR] Preview tab did not open or URL was not captured");
+        }
+        return previewUrl;
     }
 
     // ── Pre-condition check ───────────────────────────────────────────────────

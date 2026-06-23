@@ -7,8 +7,8 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 
 public class NewExperimentPopup extends BasePage {
 
-    private final By productDevelopmentUseCase    = By.id("product-development-use-case");
-    private final By marketplaceSimulationSection = By.id("newexperiment_productdevelopment_marketplacesimulation_section");
+    private final By productDevelopmentUseCase = By.id("product-development-use-case");
+    private final By ctrOptimizationSection    = By.id("newexperiment_marketing_ads_ctr_optimization");
 
     // WARNING: "btn-add-united states" contains a whitespace character — technically invalid per the
     // HTML spec (id values must not contain ASCII whitespace). By.id() maps to getElementById() which
@@ -23,14 +23,14 @@ public class NewExperimentPopup extends BasePage {
         wait.until(ExpectedConditions.presenceOfElementLocated(productDevelopmentUseCase));
         jsClick(productDevelopmentUseCase);
         new WebDriverWait(driver, 30)
-                .until(ExpectedConditions.visibilityOfElementLocated(marketplaceSimulationSection));
+                .until(ExpectedConditions.visibilityOfElementLocated(ctrOptimizationSection));
         return this;
     }
 
-    @Step("Select Marketplace Simulation test type")
-    public NewExperimentPopup selectMarketplaceSimulation() {
-        wait.until(ExpectedConditions.presenceOfElementLocated(marketplaceSimulationSection));
-        jsClick(marketplaceSimulationSection);
+    @Step("Select CTR Optimization test type")
+    public NewExperimentPopup selectCtrOptimization() {
+        wait.until(ExpectedConditions.presenceOfElementLocated(ctrOptimizationSection));
+        jsClick(ctrOptimizationSection);
         new WebDriverWait(driver, 30)
                 .until(ExpectedConditions.visibilityOfElementLocated(unitedStatesButton));
         return this;

@@ -74,13 +74,12 @@ public class PreviewJourneyPage extends BasePage {
         answerDemographicQuestion("Homeowner", sa);
         answerDemographicQuestion("1", sa);
         answerDemographicQuestion("<50k", sa);
-        answerDemographicQuestion("Desktop", sa);
         answerDemographicQuestion("Master’s degree or higher", sa);
         sa.assertAll();
         return this;
     }
 
-    @Step("Answer demographic questions Q3–Q9 (starting from Full-Time Employee)")
+    @Step("Answer demographic questions Q3–Q8 (starting from Full-Time Employee)")
     public PreviewJourneyPage answerDemographicQuestionsFromQ3() {
         SoftAssert sa = new SoftAssert();
         answerDemographicQuestion("Full-Time Employee", sa);
@@ -88,8 +87,18 @@ public class PreviewJourneyPage extends BasePage {
         answerDemographicQuestion("Homeowner", sa);
         answerDemographicQuestion("1", sa);
         answerDemographicQuestion("<50k", sa);
-        answerDemographicQuestion("Desktop", sa);
         answerDemographicQuestion("Master’s degree or higher", sa);
+        sa.assertAll();
+        return this;
+    }
+
+    // Logged-in preview shows only gender + age before the consent page — the platform
+    // skips the remaining 6 demographic questions for authenticated users.
+    @Step("Answer demographic questions for logged-in user (gender + age only)")
+    public PreviewJourneyPage answerDemographicQuestionsLoggedIn() {
+        SoftAssert sa = new SoftAssert();
+        answerDemographicQuestion("Male", sa);
+        answerDemographicQuestion("25 to 34", sa);
         sa.assertAll();
         return this;
     }
@@ -146,6 +155,9 @@ public class PreviewJourneyPage extends BasePage {
         driver.manage().deleteAllCookies();
         ((JavascriptExecutor) driver).executeScript(
             "window.localStorage.clear(); window.sessionStorage.clear();");
+        // Navigate away from the domain so Bubble.io initialises a clean guest session
+        // rather than reusing stale SPA state when the preview URL is loaded next.
+        driver.get("about:blank");
         System.out.println("[Session] Cookies and storage cleared");
     }
 
@@ -163,7 +175,90 @@ public class PreviewJourneyPage extends BasePage {
                 By.cssSelector("[id^='answer-Option-']")));
     }
 
-    // ── Opener question ───────────────────────────────────────────────────────
+    // Clears the session then navigates to the preview URL as a guest participant.
+    // Handles the Bubble.io infinite loading bug — if demographic options don't appear
+    // within 15 s, refreshes once and waits up to 45 s more.
+    @Step("Clear session and navigate to preview URL as guest (CTR — with infinite loading retry)")
+    public void navigateAsGuestCtr(String previewUrl) {
+        clearSession();
+        driver.get(previewUrl);
+        By anyDemographicOption = By.cssSelector("[id^='answer-Option-']");
+        try {
+            new WebDriverWait(driver, 15).until(
+                ExpectedConditions.presenceOfElementLocated(anyDemographicOption));
+        } catch (Exception e) {
+            System.out.println("[CTR Session] Demographic options not yet visible — refreshing page");
+            driver.navigate().refresh();
+            new WebDriverWait(driver, 45).until(
+                ExpectedConditions.presenceOfElementLocated(anyDemographicOption));
+        }
+    }
+
+    // CTR preview navigates to the URL without clearing session — the logged-in user
+    // sees the demographics flow including scenario selection on the consent page.
+    @Step("Navigate to preview URL as logged-in user (no session clearing)")
+    public void navigateAsLoggedInUser(String previewUrl) {
+        driver.get(previewUrl);
+        new WebDriverWait(driver, 30).until(
+            ExpectedConditions.presenceOfElementLocated(
+                By.cssSelector("[id^='answer-Option-']")));
+    }
+
+    // ── CTR consent ───────────────────────────────────────────────────────────
+
+    // Waits for the agree button, clicks agree + continue, and waits for the info popup
+    // (help-confirm) to confirm the product list page has loaded. Used for both logged-in
+    // and guest CTR participants — scenario assignment is handled by the platform.
+    @Step("Agree to CTR consent statement and wait for product list")
+    public PreviewJourneyPage agreeToConsentCtr() {
+        new FluentWait<>(driver)
+            .withTimeout(20, TimeUnit.SECONDS)
+            .pollingEvery(500, TimeUnit.MILLISECONDS)
+            .ignoring(Exception.class)
+            .until(ExpectedConditions.presenceOfElementLocated(By.id("agree-statement-button")));
+        jsClick(By.id("agree-statement-button"));
+        jsClick(continueStatementButton);
+        new WebDriverWait(driver, 30)
+            .until(ExpectedConditions.presenceOfElementLocated(By.id("help-confirm")));
+        return this;
+    }
+
+    // ── CTR product confirmation and opener question ──────────────────────────
+
+    // After clicking a product card on the CTR marketplace list, Confirm-choice-CTA appears.
+    // Clicking it dismisses the confirmation and triggers the opener question popup.
+    @Step("Confirm product selection with Confirm-choice-CTA")
+    public PreviewJourneyPage confirmProductSelectionCtr() {
+        new WebDriverWait(driver, 30)
+            .until(ExpectedConditions.presenceOfElementLocated(By.id("Confirm-choice-CTA")));
+        jsClick(By.id("Confirm-choice-CTA"));
+        return this;
+    }
+
+    // After confirming product selection on CTR, an opener-question popup appears.
+    // Selects the first available option and clicks next. Waits for the participant
+    // form questions page to load (final-questions-title) instead of product-title,
+    // since CTR routes directly to the form questions after the opener question.
+    @Step("Select first opener question option and proceed to CTR participant form")
+    public PreviewJourneyPage answerOpenerQuestionCtr() {
+        new WebDriverWait(driver, 30).until(
+            ExpectedConditions.presenceOfElementLocated(nextOpenerQuestionBtn));
+        List<WebElement> options = new FluentWait<>(driver)
+            .withTimeout(15, TimeUnit.SECONDS)
+            .pollingEvery(500, TimeUnit.MILLISECONDS)
+            .ignoring(Exception.class)
+            .until(d -> {
+                List<WebElement> els = d.findElements(By.cssSelector("[id^='open-product-']"));
+                return els.isEmpty() ? null : els;
+            });
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", options.get(0));
+        jsClick(nextOpenerQuestionBtn);
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(nextOpenerQuestionBtn));
+        wait.until(ExpectedConditions.presenceOfElementLocated(By.id("final-questions-title")));
+        return this;
+    }
+
+    // ── Opener question (msjourney / non-CTR) ─────────────────────────────────
 
     // After selecting a product on the marketplace list, an opener-question popup appears.
     // Options have IDs in the form open-product-{text}; we select the first available one

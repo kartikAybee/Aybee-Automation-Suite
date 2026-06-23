@@ -54,6 +54,27 @@ public class MarketplaceListPage extends BasePage {
         return this;
     }
 
+    // Clicks Not Interested for CTR — scrolls to the button, clicks it, and waits for the
+    // redirect back to the shop setup page (takes quite a while on Bubble.io).
+    // Throws AssertionError so the step definition can record a soft failure and continue.
+    @Step("Click Not Interested (CTR) and verify redirect to shop setup page")
+    public MarketplaceListPage clickNotInterestedCtrAndVerifyShopSetup() {
+        WebElement btn = wait.until(
+            ExpectedConditions.presenceOfElementLocated(notInterestedButton));
+        ((JavascriptExecutor) driver).executeScript(
+            "arguments[0].scrollIntoView({behavior:'instant',block:'center'});", btn);
+        jsClick(notInterestedButton);
+        try {
+            new WebDriverWait(driver, 90).until(
+                ExpectedConditions.presenceOfElementLocated(
+                    By.id("marketplacesimulation_shopsetup_addnewproduct_button")));
+        } catch (Exception e) {
+            throw new AssertionError(
+                "[CTR Marketplace] Not Interested redirect to shop setup timed out after 90s");
+        }
+        return this;
+    }
+
     // Clicks Not Interested — participant should be filtered out and redirected to login.
     // Throws AssertionError (not TimeoutException) so the step def can catch it and
     // record a soft failure without stopping the scenario flow.

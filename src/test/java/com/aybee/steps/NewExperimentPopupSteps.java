@@ -21,9 +21,9 @@ public class NewExperimentPopupSteps {
         popup.selectProductDevelopmentUseCase();
     }
 
-    @And("I select the Marketplace Simulation test type")
-    public void iSelectTheMarketplaceSimulationTestType() {
-        popup.selectMarketplaceSimulation();
+    @And("I select the CTR Optimization test type")
+    public void iSelectTheCtrOptimizationTestType() {
+        popup.selectCtrOptimization();
     }
 
     @And("I select United States as the target market")

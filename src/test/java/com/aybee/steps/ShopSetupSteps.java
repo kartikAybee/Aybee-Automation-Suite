@@ -23,30 +23,27 @@ public class ShopSetupSteps {
                      .clickGoAndWaitForProducts();
     }
 
-    @And("I add a product variation with updated price")
-    public void iAddAProductVariationWithUpdatedPrice() {
+    @And("I add a product variation for CTR optimization")
+    public void iAddAProductVariationForCtrOptimization() {
         shopSetupPage.waitForAllProductCardsLoaded();
         shopSetupPage.clickAddVariation();
 
-        // captureScenarioAFromPopup() blocks until both name AND price are populated
-        // from the ASIN fetch — this is the explicit "wait for Scenario A name" guard.
-        // Captures name, price, and image from the popup before any edits are applied.
+        // Capture Scenario A before any edits — blocks until both name and price are populated.
         context.scenarioAProduct = shopSetupPage.captureScenarioAFromPopup();
 
-        // Edit the popup fields for Scenario B.
-        // removeFirstWordFromProductName() verifies the typed name persisted and retries once.
+        // Delete only the first picture (the visual variable for CTR tests).
+        // Bug: deleting the picture clears all popup fields on Bubble.io.
+        // restoreScenarioAFields() re-enters exact Scenario A values so only the image differs.
         shopSetupPage.deleteMainPicture()
-                     .removeFirstWordFromProductName()
-                     .setProductPrice(ConfigReader.get("VARIANT_PRICE"));
+                     .restoreScenarioAFields(context.scenarioAProduct);
 
+        // Both scenarios share the same name — store identically for competitor detection.
         context.scenarioAProductName = shopSetupPage.getCapturedScenarioAName();
         context.scenarioBProductName = shopSetupPage.getCapturedScenarioBName();
 
-        // Capture Scenario B from the same popup after all edits — popup is still open here.
+        // Capture Scenario B after restore — same name + price as A, different image src.
         context.scenarioBProduct = shopSetupPage.captureScenarioBFromPopup(context.scenarioAProduct);
 
-        // saveChanges() includes a pre-save guard that re-types the Scenario B name
-        // if a Bubble.io reactive event (picture deletion, price entry) cleared it.
         shopSetupPage.saveChanges();
     }
 

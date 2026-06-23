@@ -5,6 +5,7 @@ import com.aybee.context.ScenarioContext;
 import com.aybee.utils.ConfigReader;
 import com.aybee.pages.FormQuestionsPage;
 import io.cucumber.java.en.And;
+import io.cucumber.java.en.When;
 
 import java.util.Arrays;
 
@@ -29,6 +30,13 @@ public class FormQuestionsSteps {
 
     public FormQuestionsSteps(ScenarioContext context) {
         this.context = context;
+    }
+
+    // ── CTR page load ─────────────────────────────────────────────────────────
+
+    @When("I wait for the form questions page to load")
+    public void iWaitForTheFormQuestionsPageToLoad() {
+        page.waitForFormQuestionsPageLoaded();
     }
 
     // ── Pre-condition ─────────────────────────────────────────────────────────

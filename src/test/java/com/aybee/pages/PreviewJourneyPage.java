@@ -74,13 +74,12 @@ public class PreviewJourneyPage extends BasePage {
         answerDemographicQuestion("Homeowner", sa);
         answerDemographicQuestion("1", sa);
         answerDemographicQuestion("<50k", sa);
-        answerDemographicQuestion("Desktop", sa);
         answerDemographicQuestion("Master’s degree or higher", sa);
         sa.assertAll();
         return this;
     }
 
-    @Step("Answer demographic questions Q3–Q9 (starting from Full-Time Employee)")
+    @Step("Answer demographic questions Q3–Q8 (starting from Full-Time Employee)")
     public PreviewJourneyPage answerDemographicQuestionsFromQ3() {
         SoftAssert sa = new SoftAssert();
         answerDemographicQuestion("Full-Time Employee", sa);
@@ -88,7 +87,6 @@ public class PreviewJourneyPage extends BasePage {
         answerDemographicQuestion("Homeowner", sa);
         answerDemographicQuestion("1", sa);
         answerDemographicQuestion("<50k", sa);
-        answerDemographicQuestion("Desktop", sa);
         answerDemographicQuestion("Master’s degree or higher", sa);
         sa.assertAll();
         return this;

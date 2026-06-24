@@ -21,9 +21,9 @@ public class MailosaurHelper {
     private static final String API_KEY   = ConfigReader.get("MAILOSAUR_API_KEY");
     private static final String SERVER_ID = ConfigReader.get("MAILOSAUR_SERVER_ID");
 
-    // Short unique address — last 8 decimal digits of millis, stays under 35 chars total.
+    // Base36-encoded full millisecond timestamp — ~8 chars, never cycles, stays under 35 chars total.
     public static String generateEmail() {
-        String email = "a" + (System.currentTimeMillis() % 100_000_000L) + "@" + SERVER_ID + ".mailosaur.net";
+        String email = "a" + Long.toString(System.currentTimeMillis(), 36) + "@" + SERVER_ID + ".mailosaur.net";
         System.out.println("[Mailosaur] Generated test email: " + email);
         return email;
     }

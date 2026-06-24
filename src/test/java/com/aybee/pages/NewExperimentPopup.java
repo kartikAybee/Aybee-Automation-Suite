@@ -8,7 +8,7 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 public class NewExperimentPopup extends BasePage {
 
     private final By productDevelopmentUseCase = By.id("product-development-use-case");
-    // A single direct click on the QAT option — no separate segment step is needed.
+    private final By qatSection                = By.id("newexperiment_productdevelopment_qat_section");
     private final By quickAssetTestingLabel    = By.id("newexperiment_productdevelopment_qat_qat_section");
 
     // WARNING: "btn-add-united states" contains a whitespace character — technically invalid per the
@@ -21,13 +21,15 @@ public class NewExperimentPopup extends BasePage {
         wait.until(ExpectedConditions.presenceOfElementLocated(productDevelopmentUseCase));
         jsClick(productDevelopmentUseCase);
         new WebDriverWait(driver, 30)
-                .until(ExpectedConditions.visibilityOfElementLocated(quickAssetTestingLabel));
+                .until(ExpectedConditions.visibilityOfElementLocated(qatSection));
         return this;
     }
 
     @Step("Select Quick Asset Testing (QAT) test type")
     public NewExperimentPopup selectQuickAssetTesting() {
-        wait.until(ExpectedConditions.presenceOfElementLocated(quickAssetTestingLabel));
+        jsClick(qatSection);
+        new WebDriverWait(driver, 30)
+                .until(ExpectedConditions.visibilityOfElementLocated(quickAssetTestingLabel));
         jsClick(quickAssetTestingLabel);
         // The target-market country chip appearing confirms the test type was selected.
         new WebDriverWait(driver, 30)

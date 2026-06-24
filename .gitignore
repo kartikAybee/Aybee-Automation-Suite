@@ -1,0 +1,3 @@
+target/
+src/test/resources/secrets.properties
+.DS_Store

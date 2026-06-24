@@ -66,6 +66,13 @@
             <artifactId>picocontainer</artifactId>
             <version>2.15</version>
         </dependency>
+
+        <!-- Mailosaur — email/OTP capture for dynamic account creation -->
+        <dependency>
+            <groupId>com.mailosaur</groupId>
+            <artifactId>mailosaur-java</artifactId>
+            <version>9.0.0</version>
+        </dependency>
     </dependencies>
 
     <build>

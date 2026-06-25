@@ -92,6 +92,16 @@ public class PreviewJourneyPage extends BasePage {
         return this;
     }
 
+    // Logged-in preview — platform only asks gender and age when a session is already active.
+    @Step("Answer demographic questions — gender (Male) and age (25 to 34) only")
+    public PreviewJourneyPage answerDemographicsGenderAndAge() {
+        SoftAssert sa = new SoftAssert();
+        answerDemographicQuestion("Male", sa);
+        answerDemographicQuestion("25 to 34", sa);
+        sa.assertAll();
+        return this;
+    }
+
     // ── Consent statement (Q10) ───────────────────────────────────────────────
 
     // Agree path — participant consents and is directed to the product list as an
@@ -100,15 +110,27 @@ public class PreviewJourneyPage extends BasePage {
     // since Bubble.io assigns non-sequential IDs to question titles.
     @Step("Agree to consent statement and wait for marketplace")
     public PreviewJourneyPage agreeToConsentStatement() {
-        new FluentWait<>(driver)
-            .withTimeout(20, TimeUnit.SECONDS)
-            .pollingEvery(500, TimeUnit.MILLISECONDS)
-            .ignoring(Exception.class)
-            .until(ExpectedConditions.presenceOfElementLocated(By.id("agree-statement-button")));
-        jsClick(By.id("agree-statement-button"));
+        By agreeBtn = By.id("agree-statement-button");
+        WebElement btn = new WebDriverWait(driver, 30).until(
+            ExpectedConditions.elementToBeClickable(agreeBtn));
+        ((JavascriptExecutor) driver).executeScript(
+            "arguments[0].scrollIntoView({behavior:'instant',block:'center'});", btn);
+        jsClick(agreeBtn);
+        // continueStatementButton activates asynchronously after the agree click —
+        // retry up to 3 times (5 s each) before clicking, matching the D2C consent pattern.
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            try {
+                new WebDriverWait(driver, 5).until(
+                    ExpectedConditions.elementToBeClickable(continueStatementButton));
+                break;
+            } catch (Exception e) {
+                System.out.println("[Consent] Continue not ready after agree click attempt "
+                    + attempt + " — retrying");
+            }
+        }
         jsClick(continueStatementButton);
-        wait.until(ExpectedConditions.presenceOfElementLocated(
-            By.cssSelector("[id='results-page-product-name']")));
+        new WebDriverWait(driver, 15).until(
+            ExpectedConditions.invisibilityOfElementLocated(continueStatementButton));
         return this;
     }
 
@@ -156,6 +178,43 @@ public class PreviewJourneyPage extends BasePage {
         driver.get(previewUrl);
         // Wait for the first answer option to appear — continue-button only renders AFTER
         // an option is selected, so it cannot serve as a page-ready indicator here.
+        new WebDriverWait(driver, 30).until(
+            ExpectedConditions.presenceOfElementLocated(
+                By.cssSelector("[id^='answer-Option-']")));
+    }
+
+    // After the first not-interested redirects to shop setup, the stored preview URL is
+    // spent — revisiting it just redirects back to shop setup again. Instead, click next
+    // on the shop setup page to reach the form questions editor, then re-click the preview
+    // button to open a fresh session in a new tab, exactly as D2C does.
+    @Step("Retrigger preview from shop setup: next → form questions → preview button → new tab")
+    public void retriggerPreviewFromShopSetup() {
+        By shopSetupNextBtn = By.id("marketplacesimulation_shopsetup_next_button");
+        By previewBtn       = By.id("newproject_formquestions_previewjourney_button");
+
+        // Advance from shop setup to form questions.
+        new WebDriverWait(driver, 30).until(
+            ExpectedConditions.elementToBeClickable(shopSetupNextBtn));
+        jsClick(shopSetupNextBtn);
+
+        // Wait for the preview button — confirms form questions page is loaded.
+        new WebDriverWait(driver, 30).until(
+            ExpectedConditions.elementToBeClickable(previewBtn));
+
+        // Click preview — opens a new tab with a fresh Bubble.io session.
+        String mainWindow = driver.getWindowHandle();
+        jsClick(previewBtn);
+
+        // Switch to the new preview tab.
+        new WebDriverWait(driver, 30).until(d -> d.getWindowHandles().size() > 1);
+        for (String handle : driver.getWindowHandles()) {
+            if (!handle.equals(mainWindow)) {
+                driver.switchTo().window(handle);
+                break;
+            }
+        }
+
+        // Wait for the first demographic option — gender + age are shown for logged-in users.
         new WebDriverWait(driver, 30).until(
             ExpectedConditions.presenceOfElementLocated(
                 By.cssSelector("[id^='answer-Option-']")));

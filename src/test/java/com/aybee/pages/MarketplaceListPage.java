@@ -70,6 +70,26 @@ public class MarketplaceListPage extends BasePage {
         return this;
     }
 
+    // Clicks Not Interested from the marketplace list as the logged-in owner.
+    // The owner is redirected back to the shop setup page; verifies by waiting for
+    // the shop setup next button (marketplacesimulation_shopsetup_next_button).
+    // 60 s timeout — redirect via Bubble.io SPA routing can take significantly longer
+    // than a normal page transition, especially after the not-interested API call completes.
+    @Step("Click Not Interested from marketplace list and verify redirect to shop setup page")
+    public MarketplaceListPage clickNotInterestedAndVerifyShopSetupRedirect() {
+        jsClick(notInterestedButton);
+        try {
+            new WebDriverWait(driver, 60).until(
+                ExpectedConditions.presenceOfElementLocated(
+                    By.id("marketplacesimulation_shopsetup_next_button")));
+        } catch (Exception e) {
+            throw new AssertionError(
+                "[Marketplace] Shop setup page did not appear after clicking Not Interested — " +
+                "marketplacesimulation_shopsetup_next_button not found within 60s");
+        }
+        return this;
+    }
+
     // Returns the full product name text from results-page-product-name elements
     // whose text contains partialName. Strips trailing "..." or "…" that CSS overflow
     // truncation appends to getText() output so the result matches the actual ID attribute.

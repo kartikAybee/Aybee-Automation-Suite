@@ -20,4 +20,16 @@ Feature: Configure Shop Products and Form Questions
     And I add a horizontal likert form question "How likely are you to recommend this product to someone you know?"
     And I add a vertical likert form question "Rate your satisfaction with the following aspects of this product."
     And I clean up empty options on the limited choice question
-    And I preview the experiment journey as a guest
+    And I preview the experiment journey as a logged-in user
+    And I answer the gender and age demographic questions
+    And I agree to the consent statement and proceed to the marketplace
+    And I dismiss the marketplace help popup if present
+    And I click not interested from the marketplace and verify I am redirected to shop setup
+    And I navigate to the preview URL as a logged-in user
+    And I answer the gender and age demographic questions
+    And I agree to the consent statement and proceed to the marketplace
+    And I dismiss the marketplace help popup if present
+    And I detect and store the current scenario assignment
+    And I select our product and answer the opener question
+    And I click not interested from the product detail and verify I am filtered out
+    And I start the guest participant journey from the preview URL

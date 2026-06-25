@@ -185,11 +185,21 @@ public class FormQuestionsPage extends BasePage {
     // Uses JS value injection + dispatchEvent — same reason as selectShowToParticipants.
     @Step("Select question type '{typeValue}' for question {index}")
     public FormQuestionsPage selectQuestionType(int index, String typeValue) {
-        WebElement select = scrollTo(By.id("dp_type_of_question_form_page_" + index));
+        By locator = By.id("dp_type_of_question_form_page_" + index);
+        WebElement select = new WebDriverWait(driver, 30).until(
+            ExpectedConditions.visibilityOfElementLocated(locator));
+        scrollToCenter(select);
+        new WebDriverWait(driver, 30).until(
+            ExpectedConditions.elementToBeClickable(locator));
+        select = driver.findElement(locator);
         ((JavascriptExecutor) driver).executeScript(
             "arguments[0].value = arguments[1];" +
             "arguments[0].dispatchEvent(new Event('change', {bubbles: true}));",
             select, "\"" + typeValue + "\"");
+        new WebDriverWait(driver, 10).until(d -> {
+            String v = d.findElement(locator).getAttribute("value");
+            return v != null && v.contains(typeValue);
+        });
         return this;
     }
 
@@ -198,23 +208,36 @@ public class FormQuestionsPage extends BasePage {
     // clicking native option elements, which fails when they render outside the viewport.
     @Step("Select Show to Participants '{showValue}' for question {index}")
     public FormQuestionsPage selectShowToParticipants(int index, String showValue) {
-        WebElement select = scrollTo(By.id("dp_show_participants_form_question_" + index));
+        By locator = By.id("dp_show_participants_form_question_" + index);
+        WebElement select = new WebDriverWait(driver, 30).until(
+            ExpectedConditions.visibilityOfElementLocated(locator));
+        scrollToCenter(select);
+        new WebDriverWait(driver, 30).until(
+            ExpectedConditions.elementToBeClickable(locator));
+        select = driver.findElement(locator);
         ((JavascriptExecutor) driver).executeScript(
             "arguments[0].value = arguments[1];" +
             "arguments[0].dispatchEvent(new Event('change', {bubbles: true}));",
             select, "\"" + showValue + "\"");
+        new WebDriverWait(driver, 10).until(d -> {
+            String v = d.findElement(locator).getAttribute("value");
+            return v != null && v.contains(showValue);
+        });
         return this;
     }
 
     @Step("Select specific product for question {index}")
     public FormQuestionsPage selectSpecificProduct(int index, String partialName) {
         By locator = By.id(index + "-product-select-dropdown");
-        scrollTo(locator);
-        // Wait for options to populate before selecting — Bubble.io loads them asynchronously.
+        WebElement dropdown = new WebDriverWait(driver, 30).until(
+            ExpectedConditions.visibilityOfElementLocated(locator));
+        scrollToCenter(dropdown);
+        new WebDriverWait(driver, 30).until(
+            ExpectedConditions.elementToBeClickable(locator));
+        // Wait for options to populate — Bubble.io loads them asynchronously after the dropdown renders.
         new WebDriverWait(driver, 30).until(d ->
             new Select(d.findElement(locator)).getOptions().size() > 1);
-        try { Thread.sleep(1500); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
-        WebElement dropdown = driver.findElement(locator);
+        dropdown = driver.findElement(locator);
         Boolean found = (Boolean) ((JavascriptExecutor) driver).executeScript(
             "var sel = arguments[0], partial = arguments[1];" +
             "for (var i = 0; i < sel.options.length; i++) {" +
@@ -229,7 +252,13 @@ public class FormQuestionsPage extends BasePage {
         if (!Boolean.TRUE.equals(found)) {
             throw new RuntimeException("Product not found in dropdown: " + partialName);
         }
-        try { Thread.sleep(1500); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        // Confirm the selected option text matches — Bubble.io may reset the dropdown
+        // before its reactive state commits the new value.
+        new WebDriverWait(driver, 10).until(d -> {
+            WebElement sel = d.findElement(locator);
+            WebElement opt = new Select(sel).getFirstSelectedOption();
+            return opt.getText().contains(partialName);
+        });
         return this;
     }
 
@@ -297,20 +326,26 @@ public class FormQuestionsPage extends BasePage {
     @Step("Select scale type '{scaleValue}' for question {index}")
     public FormQuestionsPage selectScaleType(int index, String scaleValue) {
         By locator = By.id("dp_scale_type_form_question_" + index);
-        // Scroll the dropdown into view first then wait for visibility — same pattern
-        // as enterAnswerText: scroll before waiting so the element is in the viewport.
+        // Scroll into view, then wait for both visibility and clickability before interacting.
         WebElement dropdown = new WebDriverWait(driver, 30).until(
             ExpectedConditions.visibilityOfElementLocated(locator));
         scrollToCenter(dropdown);
-        try { Thread.sleep(1000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
-        // Re-fetch after scroll to avoid stale reference.
+        new WebDriverWait(driver, 30).until(
+            ExpectedConditions.elementToBeClickable(locator));
+        // Re-fetch after scroll/wait to avoid stale reference.
         dropdown = driver.findElement(locator);
         ((JavascriptExecutor) driver).executeScript(
             "var sel = arguments[0], val = arguments[1];" +
             "sel.value = '\"' + val + '\"';" +
             "sel.dispatchEvent(new Event('change', {bubbles: true}));",
             dropdown, scaleValue);
-        try { Thread.sleep(1500); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        // Confirm the selection was committed — poll until the dropdown value reflects
+        // the chosen option. Bubble.io may reset the value if the change event fires
+        // before the reactive system is ready.
+        new WebDriverWait(driver, 10).until(d -> {
+            String v = d.findElement(locator).getAttribute("value");
+            return v != null && v.contains(scaleValue);
+        });
         return this;
     }
 
@@ -551,8 +586,14 @@ public class FormQuestionsPage extends BasePage {
     // We clear the opposite section before selecting in the intended one so the two never mix.
 
     // Clears any selected Scenario Names chips — call before selecting Products.
+    // Polls until scenario-B is present (clickFilterByScenarioTab only confirms scenario-A).
     @Step("Clear any selected scenarios (keep only the Products section active)")
     public FormQuestionsPage clearScenarioSelection() {
+        new FluentWait<>(driver)
+            .withTimeout(10, TimeUnit.SECONDS)
+            .pollingEvery(500, TimeUnit.MILLISECONDS)
+            .ignoring(Exception.class)
+            .until(ExpectedConditions.presenceOfElementLocated(By.id("scenario-B")));
         for (String id : new String[]{"scenario-A", "scenario-B"}) {
             deselectIfSelected(By.id(id));
         }
@@ -560,8 +601,20 @@ public class FormQuestionsPage extends BasePage {
     }
 
     // Clears any selected Product chips — call before selecting Scenario Names.
+    // Polls until the product chip count stabilises (chips render asynchronously after
+    // the Scenario tab opens; a premature findElements call returns empty and skips deselection).
     @Step("Clear any selected products (keep only the Scenario Names section active)")
     public FormQuestionsPage clearProductSelection() {
+        new FluentWait<>(driver)
+            .withTimeout(10, TimeUnit.SECONDS)
+            .pollingEvery(500, TimeUnit.MILLISECONDS)
+            .ignoring(Exception.class)
+            .until(d -> {
+                int before = d.findElements(By.cssSelector("[id^='specific-product-']")).size();
+                try { Thread.sleep(500); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+                int after = d.findElements(By.cssSelector("[id^='specific-product-']")).size();
+                return before > 0 && before == after;
+            });
         for (WebElement el : driver.findElements(By.cssSelector("[id^='specific-product-']"))) {
             if (isChipSelected(el)) {
                 ((JavascriptExecutor) driver).executeScript("arguments[0].click();", el);
@@ -715,8 +768,32 @@ public class FormQuestionsPage extends BasePage {
 
     @Step("Apply filters and wait for sidebar to close")
     public FormQuestionsPage applyFilters() {
-        jsClick(applyFiltersButton);
-        wait.until(ExpectedConditions.invisibilityOfElementLocated(applyFiltersButton));
+        WebElement btn = new WebDriverWait(driver, 30).until(
+            ExpectedConditions.visibilityOfElementLocated(applyFiltersButton));
+        scrollToCenter(btn);
+        new WebDriverWait(driver, 30).until(
+            ExpectedConditions.elementToBeClickable(applyFiltersButton));
+        // Real click first — jsClick bypasses Bubble.io's apply handler on this button.
+        // Fall back to JS if the real click throws (e.g. element momentarily covered).
+        try {
+            driver.findElement(applyFiltersButton).click();
+        } catch (Exception e) {
+            jsClick(applyFiltersButton);
+        }
+        // Give Bubble.io up to 5 s to close the sidebar. If the button is still visible,
+        // the first click didn't register — retry once with JS then wait the full timeout.
+        boolean closed = false;
+        try {
+            new WebDriverWait(driver, 5).until(
+                ExpectedConditions.invisibilityOfElementLocated(applyFiltersButton));
+            closed = true;
+        } catch (Exception ignored) {}
+        if (!closed) {
+            System.out.println("[Filter] Apply button still visible after first click — retrying");
+            jsClick(applyFiltersButton);
+            new WebDriverWait(driver, 30).until(
+                ExpectedConditions.invisibilityOfElementLocated(applyFiltersButton));
+        }
         return this;
     }
 
@@ -900,12 +977,19 @@ public class FormQuestionsPage extends BasePage {
         return previewUrl;
     }
 
+    // Navigates to the preview URL without clearing the session — logged-in owner sees
+    // gender + age demographics only (not all 8); waits for the first answer option.
+    @Step("Navigate to preview URL as logged-in user (gender + age demographics)")
+    public void navigateAsLoggedInUser(String previewUrl) {
+        driver.get(previewUrl);
+        new WebDriverWait(driver, 30).until(
+            ExpectedConditions.presenceOfElementLocated(
+                By.cssSelector("[id^='answer-Option-']")));
+    }
+
     // Clears the logged-in session (cookies + localStorage + sessionStorage) and navigates
     // to the preview URL as an unauthenticated participant so that backend-injected
     // demographics questions are visible instead of being skipped for logged-in users.
-    // Uses a short page-load timeout because Bubble.io's SPA never fires window.onload —
-    // driver.get() with the default 300 s timeout would block forever. After catching the
-    // expected timeout we wait for the first demographic question to confirm the page is ready.
     @Step("Clear session and open preview URL as guest")
     public void navigateAsGuest(String previewUrl) {
         driver.get(ConfigReader.get("BASE_URL"));

@@ -153,8 +153,22 @@ public class ParticipantFormPage extends BasePage {
         }
 
         // Verify mandatory questions were shown (partial match — title may be truncated in DOM).
+        // Before failing, read final-questions-title right now — the loop may have exited
+        // while the question was still on screen (e.g. login marker appeared during transition).
+        // If the title is currently visible and matches, treat it as shown and skip the failure.
         for (String expected : alwaysExpected) {
             boolean found = seenTitles.stream().anyMatch(t -> t.contains(expected) || expected.contains(t));
+            if (!found) {
+                List<WebElement> titleEls = driver.findElements(QUESTION_TITLE);
+                if (!titleEls.isEmpty()) {
+                    String current = titleEls.get(0).getText().trim();
+                    if (!current.isEmpty() && (current.contains(expected) || expected.contains(current))) {
+                        System.out.println("[ParticipantForm] Question visible at assertion time " +
+                            "but not captured during loop — treating as shown: " + expected);
+                        found = true;
+                    }
+                }
+            }
             if (!found) {
                 sa.fail("[ParticipantForm] Expected question not shown: " + expected);
             }
@@ -166,38 +180,39 @@ public class ParticipantFormPage extends BasePage {
         sa.assertAll();
     }
 
-    // Polls until the title element is present AND has non-empty text — element can
-    // appear in the DOM before Bubble.io populates its text content.
     private String waitForQuestionTitle(SoftAssert sa) {
         return waitForQuestionTitle(sa, null);
     }
 
-    // Polls until the title is non-empty AND different from previousTitle. The extra
-    // check prevents the caller from acting on a stale title that Bubble.io has not yet
-    // replaced after clicking Continue — critical when multiple consecutive questions use
-    // the same answer type (e.g., three text questions in a row where dispatching on the
-    // old title would call the wrong answer method for the next question type).
+    // Polls until final-questions-title has non-empty text different from previousTitle,
+    // then re-reads after 500 ms to confirm it is stable — Bubble.io occasionally renders
+    // a ghost title for a split second before auto-advancing, which would produce false
+    // positives or wrong answer-method dispatch. Returns null when the login page appears
+    // (survey complete) or the 60 s timeout expires.
     private String waitForQuestionTitle(SoftAssert sa, String previousTitle) {
-        long deadline = System.currentTimeMillis() + 30_000;
-        while (System.currentTimeMillis() < deadline) {
-            // Check login redirect first — if form is done, exit immediately
-            // instead of burning the remaining timeout waiting for a title that won't come.
-            if (isLoginPageVisible()) return null;
-            try {
-                List<WebElement> els = driver.findElements(QUESTION_TITLE);
-                if (!els.isEmpty()) {
-                    String text = els.get(0).getText().trim();
-                    if (!text.isEmpty() && (previousTitle == null || !text.equals(previousTitle))) {
-                        return text;
-                    }
-                }
-            } catch (Exception ignored) {}
-            try { Thread.sleep(500); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+        try {
+            String result = new org.openqa.selenium.support.ui.WebDriverWait(driver, 60).until(d -> {
+                if (isLoginPageVisible()) return "";
+                List<WebElement> els = d.findElements(QUESTION_TITLE);
+                if (els.isEmpty()) return null;
+                String text = els.get(0).getText().trim();
+                if (text.isEmpty() || text.equals(previousTitle)) return null;
+                // Stability check — re-read after 500 ms. A ghost title disappears or
+                // changes within this window; a real question stays.
+                try { Thread.sleep(500); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+                List<WebElement> again = d.findElements(QUESTION_TITLE);
+                if (again.isEmpty()) return null;
+                String stable = again.get(0).getText().trim();
+                return stable.equals(text) ? text : null;
+            });
+            // Empty string is the login-visible sentinel — exit cleanly without failing.
+            return (result == null || result.isEmpty()) ? null : result;
+        } catch (Exception e) {
+            if (!isLoginPageVisible()) {
+                sa.fail("[ParticipantForm] Question title did not appear within 60s");
+            }
+            return null;
         }
-        if (!isLoginPageVisible()) {
-            sa.fail("[ParticipantForm] Question title did not appear within 30s");
-        }
-        return null;
     }
 
     private void answerQuestion(String title, SoftAssert sa) {

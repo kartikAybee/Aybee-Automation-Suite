@@ -25,6 +25,15 @@ public class PreviewJourneySteps {
 
     // ── Demographic questions ─────────────────────────────────────────────────
 
+    @And("I answer the gender and age demographic questions")
+    public void iAnswerGenderAndAgeDemographicQuestions() {
+        try {
+            previewJourney.answerDemographicsGenderAndAge();
+        } catch (AssertionError e) {
+            context.softAssert.fail("[Preview] Gender/age demographic questions failed: " + e.getMessage());
+        }
+    }
+
     @And("I answer the demographic questions")
     public void iAnswerTheDemographicQuestions() {
         try {
@@ -64,6 +73,11 @@ public class PreviewJourneySteps {
         previewJourney.navigateAsGuest(context.previewUrl);
     }
 
+    @And("I navigate to the preview URL as a logged-in user")
+    public void iNavigateToPreviewUrlAsLoggedInUser() {
+        previewJourney.retriggerPreviewFromShopSetup();
+    }
+
     // ── Marketplace list ──────────────────────────────────────────────────────
 
     @And("I dismiss the marketplace help popup if present")
@@ -77,6 +91,15 @@ public class PreviewJourneySteps {
             marketplace.clickNotInterestedAndVerifyFilteredOut();
         } catch (AssertionError e) {
             context.softAssert.fail("[Preview] Not Interested (marketplace) filter failed: " + e.getMessage());
+        }
+    }
+
+    @And("I click not interested from the marketplace and verify I am redirected to shop setup")
+    public void iClickNotInterestedFromMarketplaceAndVerifyShopSetup() {
+        try {
+            marketplace.clickNotInterestedAndVerifyShopSetupRedirect();
+        } catch (AssertionError e) {
+            context.softAssert.fail("[Preview] Not Interested (marketplace → shop setup) redirect failed: " + e.getMessage());
         }
     }
 

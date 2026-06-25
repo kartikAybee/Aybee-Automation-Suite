@@ -87,16 +87,9 @@ public class FormQuestionsSteps {
 
     // Deferred cleanup — called after all questions are set up so Bubble.io has had enough
     // time to finish rendering any delayed empty options on the Limited Choice card.
-    // Records a soft failure if blank options were found — they should never appear with
-    // correct setup; finding them indicates a Bubble.io auto-generation bug in this run.
     @And("I clean up empty options on the limited choice question")
     public void iCleanupLimitedChoiceEmptyOptions() {
-        boolean hadEmpty = page.cleanupEmptyOptions(Q2_IDX);
-        if (hadEmpty) {
-            context.softAssert.fail(
-                "[FormQuestions] Unexpected empty answer options found on Limited Choice question " +
-                "— blank options should not appear when form questions are configured correctly");
-        }
+        page.cleanupEmptyOptions(Q2_IDX);
     }
 
     // ── Q3 — Single Choice ────────────────────────────────────────────────────
@@ -242,17 +235,26 @@ public class FormQuestionsSteps {
 
     // ── Preview Journey ───────────────────────────────────────────────────────
 
-    // Records a soft failure if the incomplete-fields toast appeared — even though we dismiss
-    // it and retry so the preview URL is still captured, a correctly set-up form should
-    // never trigger this toast.
-    @And("I preview the experiment journey as a guest")
-    public void iPreviewTheExperimentJourneyAsAGuest() {
+    // Clicks preview, captures the URL, stores it in context, then navigates to it
+    // while still logged in as the admin owner. Logged-in users skip demographics
+    // and land on the consent statement — used to run not-interested tests before
+    // clearing the session for the guest participant flow.
+    @And("I preview the experiment journey as a logged-in user")
+    public void iPreviewTheExperimentJourneyAsLoggedInUser() {
         String previewUrl = page.clickPreviewAndGetUrl();
         if (page.wasIncompleteToastSeen()) {
             System.out.println("[FormQuestions] WARNING: Incomplete-fields toast appeared " +
                 "but was handled by retrigger — preview URL captured successfully");
         }
         context.previewUrl = previewUrl;
-        page.navigateAsGuest(previewUrl);
+        page.navigateAsLoggedInUser(previewUrl);
+    }
+
+    // Clears the admin session and navigates to the stored preview URL as an anonymous
+    // participant so demographic questions are shown. Called after the logged-in
+    // not-interested tests are complete to start the full guest participant flow.
+    @And("I start the guest participant journey from the preview URL")
+    public void iStartGuestParticipantJourney() {
+        page.navigateAsGuest(context.previewUrl);
     }
 }

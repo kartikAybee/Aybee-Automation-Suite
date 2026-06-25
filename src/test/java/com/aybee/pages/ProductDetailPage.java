@@ -94,18 +94,20 @@ public class ProductDetailPage extends BasePage {
         return this;
     }
 
-    // Clicks Not Interested — participant should be filtered out and redirected to login.
-    // Throws AssertionError so the step def can catch it and record a soft failure
-    // without stopping the scenario flow.
-    @Step("Click Not Interested from product detail and verify redirect to login page")
+    // Clicks Not Interested from the product detail page as the logged-in owner.
+    // The owner is redirected back to the shop setup page — same behaviour as the
+    // marketplace list not-interested. 60 s timeout matches the marketplace variant.
+    @Step("Click Not Interested from product detail and verify redirect to shop setup page")
     public void clickNotInterestedAndVerifyFilteredOut() {
         jsClick(notInterestedButton);
         try {
-            new WebDriverWait(driver, 30).until(
-                ExpectedConditions.presenceOfElementLocated(By.id("toggle-sign-in")));
+            new WebDriverWait(driver, 60).until(
+                ExpectedConditions.presenceOfElementLocated(
+                    By.id("marketplacesimulation_shopsetup_next_button")));
         } catch (Exception e) {
             throw new AssertionError(
-                "[ProductDetail] Participant was not filtered out — toggle-sign-in did not appear after 30s");
+                "[ProductDetail] Shop setup page did not appear after clicking Not Interested — " +
+                "marketplacesimulation_shopsetup_next_button not found within 60s");
         }
     }
 

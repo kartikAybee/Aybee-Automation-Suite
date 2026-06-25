@@ -236,6 +236,9 @@ public abstract class BasePage {
     }
 
     // Returns the src of the first <img> inside a container element found by id.
+    // Scrolls the image into view first (triggers lazy-load), then polls until
+    // naturalWidth > 0 — meaning the real image has loaded and the src is no longer
+    // a data: placeholder URI. Returns null if the image never loads within 15s.
     protected String imgSrcFromContainer(String containerId) {
         WebElement container = findById(containerId);
         if (container == null) {
@@ -243,8 +246,20 @@ public abstract class BasePage {
             return null;
         }
         try {
-            String src = container.findElement(By.tagName("img")).getAttribute("src");
-            return (src != null && !src.isEmpty()) ? src : null;
+            WebElement img = container.findElement(By.tagName("img"));
+            ((JavascriptExecutor) driver).executeScript(
+                "arguments[0].scrollIntoView({behavior:'instant',block:'center'});", img);
+            new FluentWait<>(driver)
+                .withTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .pollingEvery(500, java.util.concurrent.TimeUnit.MILLISECONDS)
+                .ignoring(Exception.class)
+                .until(d -> {
+                    Object nw = ((JavascriptExecutor) d).executeScript(
+                        "return arguments[0].naturalWidth;", img);
+                    return nw instanceof Long && (Long) nw > 0;
+                });
+            String src = img.getAttribute("src");
+            return (src != null && !src.startsWith("data:") && !src.isEmpty()) ? src : null;
         } catch (Exception e) {
             return null;
         }

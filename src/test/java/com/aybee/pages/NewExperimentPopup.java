@@ -7,8 +7,9 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 
 public class NewExperimentPopup extends BasePage {
 
-    private final By productDevelopmentUseCase = By.id("product-development-use-case");
-    private final By ctrOptimizationSection    = By.id("newexperiment_marketing_ads_ctr_optimization");
+    private final By productDevelopmentUseCase    = By.id("product-development-use-case");
+    private final By packagingOptimizationSection = By.id("newexperiment_productdevelopment_qat_section");
+    private final By ctrOptimizationItem          = By.id("newexperiment_marketing_ads_ctr_optimization");
 
     // WARNING: "btn-add-united states" contains a whitespace character — technically invalid per the
     // HTML spec (id values must not contain ASCII whitespace). By.id() maps to getElementById() which
@@ -23,14 +24,23 @@ public class NewExperimentPopup extends BasePage {
         wait.until(ExpectedConditions.presenceOfElementLocated(productDevelopmentUseCase));
         jsClick(productDevelopmentUseCase);
         new WebDriverWait(driver, 30)
-                .until(ExpectedConditions.visibilityOfElementLocated(ctrOptimizationSection));
+                .until(ExpectedConditions.visibilityOfElementLocated(packagingOptimizationSection));
+        return this;
+    }
+
+    @Step("Select Packaging Optimization section")
+    public NewExperimentPopup selectPackagingOptimizationSection() {
+        wait.until(ExpectedConditions.presenceOfElementLocated(packagingOptimizationSection));
+        jsClick(packagingOptimizationSection);
+        new WebDriverWait(driver, 30)
+                .until(ExpectedConditions.visibilityOfElementLocated(ctrOptimizationItem));
         return this;
     }
 
     @Step("Select CTR Optimization test type")
     public NewExperimentPopup selectCtrOptimization() {
-        wait.until(ExpectedConditions.presenceOfElementLocated(ctrOptimizationSection));
-        jsClick(ctrOptimizationSection);
+        wait.until(ExpectedConditions.presenceOfElementLocated(ctrOptimizationItem));
+        jsClick(ctrOptimizationItem);
         new WebDriverWait(driver, 30)
                 .until(ExpectedConditions.visibilityOfElementLocated(unitedStatesButton));
         return this;

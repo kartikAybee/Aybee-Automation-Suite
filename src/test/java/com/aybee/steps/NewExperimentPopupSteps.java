@@ -21,6 +21,11 @@ public class NewExperimentPopupSteps {
         popup.selectProductDevelopmentUseCase();
     }
 
+    @And("I select the Packaging Optimization section")
+    public void iSelectThePackagingOptimizationSection() {
+        popup.selectPackagingOptimizationSection();
+    }
+
     @And("I select the CTR Optimization test type")
     public void iSelectTheCtrOptimizationTestType() {
         popup.selectCtrOptimization();

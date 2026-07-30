@@ -1,0 +1,26 @@
+# ── Build output ──────────────────────────────────────────
+target/
+
+# ── Secrets (machine-specific credentials/paths) ──────────
+# secrets.properties is NEVER committed; commit secrets.properties.example instead.
+src/test/resources/secrets.properties
+
+# ── IntelliJ IDEA / editor files ──────────────────────────
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# ── Allure (bundled CLI + generated reports/results) ──────
+.allure/
+allure-results/
+allure-report/
+.allure-history/
+
+# ── Maven wrapper local dir / logs ────────────────────────
+.mvn/
+*.log
+
+# ── OS junk ───────────────────────────────────────────────
+.DS_Store
+Thumbs.db

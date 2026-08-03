@@ -28,6 +28,10 @@ public class FormQuestionsPage extends BasePage {
     private final By addQuestionButton    = By.id("newproject_formquestions_addquestion_button");
     private final By addManuallyButton    = By.id("add-manually-btn");
     private final By previewJourneyButton = By.id("newproject_formquestions_previewjourney_button");
+    // Desktop/Mobile preview chooser popup — shown after clicking Preview. We always pick Desktop.
+    // Validation/error toasts now fire AFTER the Desktop selection, not on the Preview click.
+    private final By previewDesktopButton = By.id("preview-desktop");
+    private final By closePreviewChooser  = By.id("close-preview-chooser");
 
     // Asset upload popup — File-Upload-Asset-Input is the outer container;
     // dropzone is the clickable upload button inside it (id ends with bare "-").
@@ -73,12 +77,55 @@ public class FormQuestionsPage extends BasePage {
     // Clicks the preview journey button, waits for a new tab to open, captures the URL,
     // closes the tab, and returns the URL. No choice-question retrigger needed for CTR
     // since the 2 pre-added questions are long-text type with no answer options to validate.
-    @Step("Click Preview Journey button and capture preview URL (CTR)")
+    // Opens the preview: clicks the Preview button, waits for the Desktop/Mobile chooser popup, and
+    // selects Desktop (preview-desktop). Validation/error toasts fire AFTER the Desktop selection.
+    private void openPreviewChooserAndSelectDesktop() {
+        scrollTo(previewJourneyButton);
+        jsClick(previewJourneyButton);
+        WebElement desktop = new WebDriverWait(driver, 30).until(
+            ExpectedConditions.elementToBeClickable(previewDesktopButton));
+        scrollToCenter(desktop);
+        jsClick(previewDesktopButton);
+    }
+
+    // Dismisses the error toast — which, in this flow, ALSO closes the Desktop/Mobile chooser popup.
+    private void dismissToastAndChooser() {
+        try {
+            driver.findElement(By.id("dismiss-toast")).click();
+            new WebDriverWait(driver, 5).until(
+                ExpectedConditions.invisibilityOfElementLocated(By.cssSelector("[id^='toast-']")));
+        } catch (Exception ignored) {}
+    }
+
+    // Closes the Desktop/Mobile chooser popup directly (used when NO toast is present — a toast would
+    // close the chooser for us). No-op if the chooser is not currently shown.
+    private void closePreviewChooserIfPresent() {
+        try {
+            if (!driver.findElements(closePreviewChooser).isEmpty()
+                    && driver.findElement(closePreviewChooser).isDisplayed()) {
+                jsClick(closePreviewChooser);
+                new WebDriverWait(driver, 5).until(
+                    ExpectedConditions.invisibilityOfElementLocated(closePreviewChooser));
+            }
+        } catch (Exception ignored) {}
+    }
+
+    @Step("Open preview (select Desktop) and capture preview URL (CTR)")
     public String clickPreviewAndGetUrlCtr() {
         try { Thread.sleep(2000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
         String mainWindow = driver.getWindowHandle();
-        scrollTo(previewJourneyButton);
-        jsClick(previewJourneyButton);
+        // Native click on the section title so focus leaves the last field before previewing —
+        // Bubble only validates a field once it is blurred (a JS click won't fire blur). Guarded by a
+        // presence check so it's a fast no-op if absent; blurActiveElement() is a fallback.
+        try {
+            By titleLocator = By.id("experiment-questions-title");
+            if (!driver.findElements(titleLocator).isEmpty()) {
+                scrollTo(titleLocator);
+                click(titleLocator);
+            }
+        } catch (Exception ignored) {}
+        blurActiveElement();
+        openPreviewChooserAndSelectDesktop();
         new WebDriverWait(driver, 30).until(d -> d.getWindowHandles().size() > 1);
         String previewUrl = null;
         for (String handle : driver.getWindowHandles()) {
@@ -97,6 +144,8 @@ public class FormQuestionsPage extends BasePage {
         if (previewUrl == null) {
             throw new RuntimeException("[CTR] Preview tab did not open or URL was not captured");
         }
+        // On success the chooser stays open in the editor window — close it so later steps aren't blocked.
+        closePreviewChooserIfPresent();
         return previewUrl;
     }
 
@@ -883,10 +932,21 @@ public class FormQuestionsPage extends BasePage {
         // Click free-question-1 to trigger a Bubble.io DB validation pass before preview,
         // giving the backend time to mark all questions complete and clear any stale incomplete state.
         jsClick(By.id("free-question-1"));
+        // Native click on the section title so focus actually LEAVES the last field — Bubble only
+        // validates a field once it is blurred, and a JS click does not change document.activeElement
+        // or fire the field's blur event. Guarded by a presence check so it's a fast no-op if this
+        // experiment type has no such title element; blurActiveElement() is a fallback.
+        try {
+            By titleLocator = By.id("experiment-questions-title");
+            if (!driver.findElements(titleLocator).isEmpty()) {
+                scrollTo(titleLocator);
+                click(titleLocator);
+            }
+        } catch (Exception ignored) {}
+        blurActiveElement();
         try { Thread.sleep(3000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
 
-        scrollTo(previewJourneyButton);
-        jsClick(previewJourneyButton);
+        openPreviewChooserAndSelectDesktop();
 
         final int MAX_ATTEMPTS = retriggerQueue.length + 1;
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -901,13 +961,9 @@ public class FormQuestionsPage extends BasePage {
             if (toastDetectedDuringPoll) {
                 incompleteToastSeenOnLastPreview = true;
                 // Dismiss the toast immediately — its purpose (signal validation failed) is
-                // served. The next attempt will produce a fresh toast if still failing.
-                try {
-                    driver.findElement(By.id("dismiss-toast")).click();
-                    new WebDriverWait(driver, 5).until(
-                        ExpectedConditions.invisibilityOfElementLocated(
-                            By.cssSelector("[id^='toast-']")));
-                } catch (Exception ignored) {}
+                // served. Dismissing it ALSO closes the Desktop/Mobile chooser popup. The next
+                // attempt will produce a fresh toast if still failing.
+                dismissToastAndChooser();
 
                 if (retriggerIdx < retriggerQueue.length) {
                     int qIdx = retriggerQueue[retriggerIdx++];
@@ -921,10 +977,11 @@ public class FormQuestionsPage extends BasePage {
                 }
                 try { Thread.sleep(2000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
             } else {
-                System.out.println("[Preview] No tab or toast on attempt " + attempt + " — retrying click");
+                System.out.println("[Preview] No tab or toast on attempt " + attempt
+                    + " — closing chooser and retrying");
+                closePreviewChooserIfPresent();
             }
-            scrollTo(previewJourneyButton);
-            jsClick(previewJourneyButton);
+            openPreviewChooserAndSelectDesktop();
         }
 
         String previewUrl = null;
@@ -944,6 +1001,8 @@ public class FormQuestionsPage extends BasePage {
         if (previewUrl == null) {
             throw new RuntimeException("Preview tab did not open or URL was not captured");
         }
+        // On success the chooser stays open in the editor window — close it so later steps aren't blocked.
+        closePreviewChooserIfPresent();
         return previewUrl;
     }
 

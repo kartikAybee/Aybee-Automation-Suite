@@ -1,5 +1,6 @@
 package com.aybee.pages;
 
+import com.aybee.utils.ConfigReader;
 import io.qameta.allure.Step;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
@@ -12,8 +13,12 @@ public class NewExperimentPopup extends BasePage {
 
     private final By marketingAndAdsUseCase = By.id("marketing-and-ads-use-case");
     // The Questionnaire test-type card lives in a horizontally-scrolling carousel (Side Scroll),
-    // so it is off-screen until scrolled sideways into view before clicking.
-    private final By questionnaireSection   = By.id("newexperiment_marketing_ads_questionnaire");
+    // so it is off-screen until scrolled sideways into view before clicking. Its element id now
+    // equals the template's NAME, so it is chosen by the required TEMPLATE_NAME config (no code
+    // fallback). The use-case grouping (Marketing & Ads) stays fixed — only the template under it is
+    // configurable. Located via [id='...'] so names with spaces/special chars still match.
+    private final By questionnaireSection   = By.cssSelector(
+            "[id='" + ConfigReader.get("TEMPLATE_NAME") + "']");
 
     // WARNING: "btn-add-united states" contains a whitespace character — technically invalid per the
     // HTML spec (id values must not contain ASCII whitespace). By.id() maps to getElementById() which

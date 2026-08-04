@@ -1,5 +1,6 @@
 package com.aybee.pages;
 
+import com.aybee.utils.ConfigReader;
 import io.qameta.allure.Step;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
@@ -32,8 +33,17 @@ public class FormQuestionsPage extends BasePage {
     //                   Show: All products (all products displayed beside at preview time)
     //                   Type: Long text
     //
-    // Manually added questions start at index 4 and use that index for ALL element IDs.
-    public static final int FIRST_QUESTION_INDEX = 4;
+    // Whether the platform pre-adds these default questions is backend-controlled and changes often,
+    // so it is driven by the DEFAULT_QUESTIONS config flag (yes/no) rather than hard-coded:
+    //   yes (default) → the 3 default questions above are pre-added (indices 1–3); manual questions
+    //                   start at index 4, and the participant journey expects the defaults.
+    //   no            → no default questions exist; manual questions start at index 1, and the
+    //                   participant journey expects none of them.
+    // All element IDs and expected-count checks derive from FIRST_QUESTION_INDEX / DEFAULT_QUESTION_COUNT,
+    // so they adapt automatically to whichever mode is configured.
+    public static final boolean HAS_DEFAULT_QUESTIONS = ConfigReader.getYesNo("DEFAULT_QUESTIONS", true);
+    public static final int DEFAULT_QUESTION_COUNT = HAS_DEFAULT_QUESTIONS ? 3 : 0;
+    public static final int FIRST_QUESTION_INDEX = DEFAULT_QUESTION_COUNT + 1;
 
     private final By addQuestionButton    = By.id("newproject_formquestions_addquestion_button");
     private final By addManuallyButton    = By.id("add-manually-btn");
@@ -85,21 +95,27 @@ public class FormQuestionsPage extends BasePage {
             ExpectedConditions.elementToBeClickable(addQuestionButton));
         System.out.println("[FormQuestions] Add Question button clickable after reload");
 
-        // Wait up to 30 s for all 3 platform-generated question cards to render.
-        // A stabilize-at-any-count check is insufficient — the first card renders fast
-        // while the others follow asynchronously, so we wait explicitly for count == 3.
-        try {
-            new WebDriverWait(driver, 30).until(d ->
-                d.findElements(By.cssSelector("[id$='-toggle-group']")).size() >= 3);
-        } catch (Exception e) {
-            int found = driver.findElements(By.cssSelector("[id$='-toggle-group']")).size();
-            System.out.println("[FormQuestions] Timed out waiting for 3 questions — currently visible: " + found);
+        // Wait up to 30 s for all DEFAULT_QUESTION_COUNT platform-generated question cards to render.
+        // A stabilize-at-any-count check is insufficient — the first card renders fast while the
+        // others follow asynchronously, so we wait explicitly for count == DEFAULT_QUESTION_COUNT.
+        // When DEFAULT_QUESTIONS=no (count 0) there are no default cards to wait for.
+        if (DEFAULT_QUESTION_COUNT > 0) {
+            try {
+                new WebDriverWait(driver, 30).until(d ->
+                    d.findElements(By.cssSelector("[id$='-toggle-group']")).size() >= DEFAULT_QUESTION_COUNT);
+            } catch (Exception e) {
+                int found = driver.findElements(By.cssSelector("[id$='-toggle-group']")).size();
+                System.out.println("[FormQuestions] Timed out waiting for " + DEFAULT_QUESTION_COUNT
+                    + " questions — currently visible: " + found);
+            }
         }
 
         int count = driver.findElements(By.cssSelector("[id$='-toggle-group']")).size();
-        System.out.println("[FormQuestions] Toggle-group count after reload: " + count);
-        Assert.assertEquals(count, 3,
-            "[FormQuestions] Expected 3 initial D2C form questions (indices 1–3), found: " + count);
+        System.out.println("[FormQuestions] Toggle-group count after reload: " + count
+            + " (expected " + DEFAULT_QUESTION_COUNT + ")");
+        Assert.assertEquals(count, DEFAULT_QUESTION_COUNT,
+            "[FormQuestions] Expected " + DEFAULT_QUESTION_COUNT
+                + " initial D2C default questions, found: " + count);
     }
 
     // ── Card lifecycle ────────────────────────────────────────────────────────

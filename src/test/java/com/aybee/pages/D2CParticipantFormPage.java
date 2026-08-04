@@ -116,7 +116,10 @@ public class D2CParticipantFormPage extends BasePage {
             clickContinue(sa);
         }
 
-        if (expectQ2 && !q2Seen) {
+        // Q1/Q2/Q3 are DEFAULT (platform pre-added) questions — Q2 only exists when defaults are
+        // present, so only assert its appearance when DEFAULT_QUESTIONS=yes. Q4 is the manually added
+        // A/B question and is always expected regardless of defaults.
+        if (FormQuestionsPage.HAS_DEFAULT_QUESTIONS && expectQ2 && !q2Seen) {
             sa.fail("[D2CForm] Q2 was expected (competitor flow) but never appeared");
         }
         if (!q4Seen) {

@@ -127,16 +127,20 @@ public class ParticipantFormPage extends BasePage {
     public void answerAllAndVerifyCompletion(String currentScenario) {
         SoftAssert sa = new SoftAssert();
 
-        // D3 is always shown regardless of which product was bought.
         // Q1, Q2, Q6 are always shown for participants who bought our product.
         // Q3, Q4, Q5 each select both options in their filter section (both products / both
         // scenarios), so they appear in both scenarios. Q4's Show=Specific Product (Scenario A)
         // only controls which product is displayed — it still appears for Scenario B too.
-        List<String> alwaysExpected = Arrays.asList(
-            D3_TITLE, Q1_TITLE, Q2_TITLE, Q3_TITLE, Q4_TITLE, Q5_TITLE, Q6_TITLE);
+        // D3 (a default question) is always shown WHEN defaults exist — expect it only if
+        // DEFAULT_QUESTIONS=yes (D1/D2 are the buy/not-buy pair, handled inline, not asserted here).
+        List<String> alwaysExpected = new java.util.ArrayList<>(Arrays.asList(
+            Q1_TITLE, Q2_TITLE, Q3_TITLE, Q4_TITLE, Q5_TITLE, Q6_TITLE));
+        if (FormQuestionsPage.HAS_DEFAULT_QUESTIONS) {
+            alwaysExpected.add(0, D3_TITLE);
+        }
         java.util.Set<String> seenTitles = new java.util.HashSet<>();
 
-        // 3 default + up to 6 user-configured = 9 total; 12 gives margin for any extras.
+        // up to 3 default + 6 user-configured = 9 total (or 6 when no defaults); 12 gives margin.
         String previousTitle = null;
         for (int i = 0; i < 12; i++) {
             if (isLoginPageVisible()) break;

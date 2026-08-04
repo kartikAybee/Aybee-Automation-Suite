@@ -21,9 +21,17 @@ import java.util.concurrent.TimeUnit;
 
 public class FormQuestionsPage extends BasePage {
 
-    // Questions 1–3 are pre-added by the platform and always present.
-    // Manually added questions start at index 4 and use that index for ALL element IDs.
-    public static final int FIRST_QUESTION_INDEX = 4;
+    // Whether the platform pre-adds its default questions is backend-controlled and changes often, so
+    // it is driven by the DEFAULT_QUESTIONS config flag (yes/no) rather than hard-coded:
+    //   yes (default) → the platform pre-adds its 3 default questions (indices 1–3); manual questions
+    //                   start at index 4, and the participant journey expects the default questions.
+    //   no            → no default questions exist; manual questions start at index 1, and the
+    //                   participant journey expects none of the default questions.
+    // Everything else (question IDs, retrigger indices, expected-question checks) is derived from
+    // FIRST_QUESTION_INDEX, so it adapts automatically to whichever mode is configured.
+    public static final boolean HAS_DEFAULT_QUESTIONS = ConfigReader.getYesNo("DEFAULT_QUESTIONS", true);
+    public static final int DEFAULT_QUESTION_COUNT = HAS_DEFAULT_QUESTIONS ? 3 : 0;
+    public static final int FIRST_QUESTION_INDEX = DEFAULT_QUESTION_COUNT + 1;
 
     private final By addQuestionButton    = By.id("newproject_formquestions_addquestion_button");
     private final By addManuallyButton    = By.id("add-manually-btn");
@@ -92,13 +100,14 @@ public class FormQuestionsPage extends BasePage {
                 return first == second;
             });
 
-        // All questions now carry {n}-toggle-group IDs, including the 3 pre-added ones
-        // (indices 1–3). Only delete extras whose index >= FIRST_QUESTION_INDEX (4+) —
-        // those are unexpectedly leftover user-added questions from a previous run.
+        // All questions now carry {n}-toggle-group IDs, including any pre-added defaults (indices
+        // 1..DEFAULT_QUESTION_COUNT). Only delete extras whose index >= FIRST_QUESTION_INDEX — those
+        // are unexpectedly leftover user-added questions from a previous run. When DEFAULT_QUESTIONS=no
+        // there are no defaults (FIRST_QUESTION_INDEX=1), so any numbered question present is an extra.
         List<WebElement> toggleGroups = driver.findElements(
             By.cssSelector("[id$='-toggle-group']"));
 
-        // Extract numeric indices, skipping the pre-added questions (1–3).
+        // Extract numeric indices, skipping the pre-added defaults (1..DEFAULT_QUESTION_COUNT).
         List<Integer> extraIndices = new ArrayList<>();
         for (WebElement tg : toggleGroups) {
             String id = tg.getAttribute("id");

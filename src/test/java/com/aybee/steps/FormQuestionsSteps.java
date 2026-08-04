@@ -12,13 +12,15 @@ import static com.aybee.pages.FormQuestionsPage.FIRST_QUESTION_INDEX;
 
 public class FormQuestionsSteps {
 
-    // Question indices — 3 pre-existing questions occupy 1–3.
-    private static final int Q1_IDX = FIRST_QUESTION_INDEX;     // 4 — Long Text
-    private static final int Q2_IDX = FIRST_QUESTION_INDEX + 1; // 5 — Limited Choice
-    private static final int Q3_IDX = FIRST_QUESTION_INDEX + 2; // 6 — Single Choice
-    private static final int Q4_IDX = FIRST_QUESTION_INDEX + 3; // 7 — Multiple Choice
-    private static final int Q5_IDX = FIRST_QUESTION_INDEX + 4; // 8 — Likert Horizontal
-    private static final int Q6_IDX = FIRST_QUESTION_INDEX + 5; // 9 — Likert Vertical
+    // Question indices are relative to FIRST_QUESTION_INDEX, which is driven by the DEFAULT_QUESTIONS
+    // config flag: DEFAULT_QUESTIONS=yes → defaults occupy 1–3, so these are 4–9; DEFAULT_QUESTIONS=no
+    // → no defaults, so these are 1–6. All element IDs derive from these, so they adapt automatically.
+    private static final int Q1_IDX = FIRST_QUESTION_INDEX;     // Long Text
+    private static final int Q2_IDX = FIRST_QUESTION_INDEX + 1; // Limited Choice
+    private static final int Q3_IDX = FIRST_QUESTION_INDEX + 2; // Single Choice
+    private static final int Q4_IDX = FIRST_QUESTION_INDEX + 3; // Multiple Choice
+    private static final int Q5_IDX = FIRST_QUESTION_INDEX + 4; // Likert Horizontal
+    private static final int Q6_IDX = FIRST_QUESTION_INDEX + 5; // Likert Vertical
 
     // Partial question texts used when selecting questions inside filter dropdowns.
     private static final String Q2_PARTIAL = "Which product attributes matter most";

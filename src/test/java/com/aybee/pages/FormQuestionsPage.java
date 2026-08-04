@@ -21,9 +21,17 @@ import java.util.concurrent.TimeUnit;
 
 public class FormQuestionsPage extends BasePage {
 
-    // CTR experiments have 2 pre-added questions (indices 1–2). Manually added questions
-    // would start at index 3 — stored for future use; no manual additions in CTR tests.
-    public static final int FIRST_QUESTION_INDEX = 3;
+    // CTR experiments' 2 pre-added questions ARE the whole participant form (CTR adds no manual
+    // questions). Whether the platform pre-adds them is backend-controlled, so it's driven by the
+    // DEFAULT_QUESTIONS config flag (yes/no):
+    //   yes (default) → the 2 default questions are pre-added (indices 1–2); the guest journey answers
+    //                   them; FIRST_QUESTION_INDEX (=3) is where any future manual question would start.
+    //   no            → no default questions; FIRST_QUESTION_INDEX=1; the guest journey skips answering
+    //                   the (non-existent) default questions and proceeds straight to completion.
+    // reloadAndCheckExtraQuestions and every index derive from these, so they adapt automatically.
+    public static final boolean HAS_DEFAULT_QUESTIONS = ConfigReader.getYesNo("DEFAULT_QUESTIONS", true);
+    public static final int DEFAULT_QUESTION_COUNT = HAS_DEFAULT_QUESTIONS ? 2 : 0;
+    public static final int FIRST_QUESTION_INDEX = DEFAULT_QUESTION_COUNT + 1;
 
     private final By addQuestionButton    = By.id("newproject_formquestions_addquestion_button");
     private final By addManuallyButton    = By.id("add-manually-btn");

@@ -437,8 +437,14 @@ public class PreviewJourneySteps {
     }
 
     // Answers the first CTR pre-added long-text question (>35 words required to enable continue).
+    // The 2 CTR participant questions ARE the default questions — when DEFAULT_QUESTIONS=no there are
+    // none, so this is a no-op and the journey proceeds straight to the completion redirect.
     @And("I answer the first CTR participant long text question")
     public void iAnswerFirstCtrParticipantLongTextQuestion() {
+        if (!com.aybee.pages.FormQuestionsPage.HAS_DEFAULT_QUESTIONS) {
+            System.out.println("[CTR ParticipantForm] DEFAULT_QUESTIONS=no — no default questions to answer (Q1 skipped)");
+            return;
+        }
         try {
             participantForm.answerLongTextQuestion();
         } catch (AssertionError e) {
@@ -447,8 +453,13 @@ public class PreviewJourneySteps {
     }
 
     // Answers the second CTR pre-added long-text question (>35 words required to enable continue).
+    // Skipped when DEFAULT_QUESTIONS=no (see Q1 above).
     @And("I answer the second CTR participant long text question")
     public void iAnswerSecondCtrParticipantLongTextQuestion() {
+        if (!com.aybee.pages.FormQuestionsPage.HAS_DEFAULT_QUESTIONS) {
+            System.out.println("[CTR ParticipantForm] DEFAULT_QUESTIONS=no — no default questions to answer (Q2 skipped)");
+            return;
+        }
         try {
             participantForm.answerLongTextQuestion();
         } catch (AssertionError e) {

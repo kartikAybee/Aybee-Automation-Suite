@@ -49,4 +49,11 @@ public class ConfigReader {
     public static boolean getBoolean(String key, boolean defaultValue) {
         return Boolean.parseBoolean(get(key, String.valueOf(defaultValue)));
     }
+
+    // Interprets a yes/no-style config flag. Treats yes/true/1/y/on (case-insensitive) as true and
+    // no/false/0/n/off as false. Use for human-facing yes/no toggles like NEW_PREVIEW.
+    public static boolean getYesNo(String key, boolean defaultValue) {
+        String v = get(key, defaultValue ? "yes" : "no").trim().toLowerCase();
+        return v.equals("yes") || v.equals("true") || v.equals("1") || v.equals("y") || v.equals("on");
+    }
 }

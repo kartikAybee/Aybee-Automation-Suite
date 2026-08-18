@@ -32,10 +32,10 @@ public class ShopSetupSteps {
         context.scenarioAProduct = shopSetupPage.captureScenarioAFromPopup();
 
         // Delete only the first picture (the visual variable for CTR tests).
-        // Bug: deleting the picture clears all popup fields on Bubble.io.
-        // restoreScenarioAFields() re-enters exact Scenario A values so only the image differs.
-        shopSetupPage.deleteMainPicture()
-                     .restoreScenarioAFields(context.scenarioAProduct);
+        // We no longer delete the scenario's main picture (applies to all test types).
+        // restoreScenarioAFields() sets Scenario B's name/price to match Scenario A — CTR competitor
+        // detection relies on both scenarios sharing the same product name.
+        shopSetupPage.restoreScenarioAFields(context.scenarioAProduct);
 
         // Both scenarios share the same name — store identically for competitor detection.
         context.scenarioAProductName = shopSetupPage.getCapturedScenarioAName();

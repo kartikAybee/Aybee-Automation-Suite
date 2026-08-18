@@ -132,8 +132,14 @@ public class ParticipantFormPage extends BasePage {
         // Q3, Q4, Q5 each select both options in their filter section (both products / both
         // scenarios), so they appear in both scenarios. Q4's Show=Specific Product (Scenario A)
         // only controls which product is displayed — it still appears for Scenario B too.
-        List<String> alwaysExpected = Arrays.asList(
-            D3_TITLE, Q1_TITLE, Q2_TITLE, Q3_TITLE, Q4_TITLE, Q5_TITLE, Q6_TITLE);
+        // Q1..Q6 are our manually-added questions and always appear. D3 is a DEFAULT (pre-added)
+        // question, so only expect it when DEFAULT_QUESTIONS=yes — otherwise a no-defaults run would
+        // fake-fail on a question that was never meant to be shown.
+        List<String> alwaysExpected = new java.util.ArrayList<>(Arrays.asList(
+            Q1_TITLE, Q2_TITLE, Q3_TITLE, Q4_TITLE, Q5_TITLE, Q6_TITLE));
+        if (FormQuestionsPage.HAS_DEFAULT_QUESTIONS) {
+            alwaysExpected.add(0, D3_TITLE);
+        }
         java.util.Set<String> seenTitles = new java.util.HashSet<>();
 
         // 3 default + up to 6 user-configured = 9 total; 12 gives margin for any extras.

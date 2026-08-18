@@ -254,7 +254,14 @@ public class PreviewJourneyPage extends BasePage {
         ((JavascriptExecutor) driver).executeScript("arguments[0].click();", options.get(0));
         jsClick(nextOpenerQuestionBtn);
         wait.until(ExpectedConditions.invisibilityOfElementLocated(nextOpenerQuestionBtn));
-        wait.until(ExpectedConditions.presenceOfElementLocated(By.id("final-questions-title")));
+        // After the opener the journey either lands on the participant form (final-questions-title —
+        // when there are questions to answer, default and/or manual) or, when there are none (e.g.
+        // DEFAULT_QUESTIONS=no with no manual questions), proceeds straight to the completion redirect
+        // (toggle-sign-in). Accept whichever appears so we never fake-timeout expecting a form that the
+        // config says won't exist.
+        new WebDriverWait(driver, 30).until(ExpectedConditions.or(
+            ExpectedConditions.presenceOfElementLocated(By.id("final-questions-title")),
+            ExpectedConditions.presenceOfElementLocated(By.id("toggle-sign-in"))));
         return this;
     }
 

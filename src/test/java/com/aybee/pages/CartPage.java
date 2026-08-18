@@ -112,11 +112,14 @@ public class CartPage extends BasePage {
     public void clickConfirmCheckout() {
         wait.until(ExpectedConditions.elementToBeClickable(confirmCheckoutBtn));
         jsClick(confirmCheckoutBtn);
-        // Bubble.io populates the question title text asynchronously after the element appears —
-        // poll for non-empty text so the caller gets a fully-ready form, not just a present container.
+        // After checkout the flow either shows the participant form (final-questions-title, whose text
+        // Bubble populates asynchronously — poll for non-empty) or, when there are no questions to
+        // answer (e.g. DEFAULT_QUESTIONS=no with no manual questions), redirects straight to completion
+        // (toggle-sign-in). Accept whichever appears so no fake 60s timeout fires expecting a form.
         // 60s covers slow checkout processing and form page render after redirect.
         new WebDriverWait(driver, 60).until(d -> {
             try {
+                if (!d.findElements(By.id("toggle-sign-in")).isEmpty()) return true;
                 String text = d.findElement(By.id("final-questions-title")).getText().trim();
                 return !text.isEmpty();
             } catch (Exception e) {

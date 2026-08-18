@@ -40,6 +40,9 @@ public class FormQuestionsPage extends BasePage {
     // Validation/error toasts now fire AFTER the Desktop selection, not on the Preview click.
     private final By previewDesktopButton = By.id("preview-desktop");
     private final By closePreviewChooser  = By.id("close-preview-chooser");
+    // NEW_PREVIEW=no (default): preview opens directly, no Desktop/Mobile chooser. yes: select Desktop
+    // in the chooser after clicking Preview. Reverted to no for now.
+    private final boolean useNewPreview = com.aybee.utils.ConfigReader.getYesNo("NEW_PREVIEW", false);
 
     // Asset upload popup — File-Upload-Asset-Input is the outer container;
     // dropzone is the clickable upload button inside it (id ends with bare "-").
@@ -910,6 +913,8 @@ public class FormQuestionsPage extends BasePage {
     private void openPreviewChooserAndSelectDesktop() {
         scrollTo(previewJourneyButton);
         jsClick(previewJourneyButton);
+        // NEW_PREVIEW=no (default): preview opens directly -- no Desktop/Mobile chooser to handle.
+        if (!useNewPreview) return;
         WebElement desktop = new WebDriverWait(driver, 30).until(
             ExpectedConditions.elementToBeClickable(previewDesktopButton));
         scrollToCenter(desktop);

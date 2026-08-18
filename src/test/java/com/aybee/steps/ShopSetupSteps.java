@@ -35,8 +35,8 @@ public class ShopSetupSteps {
 
         // Edit the popup fields for Scenario B.
         // removeFirstWordFromProductName() verifies the typed name persisted and retries once.
-        shopSetupPage.deleteMainPicture()
-                     .removeFirstWordFromProductName()
+        // We no longer delete the scenario's main picture (applies to all test types) — only edit name/price.
+        shopSetupPage.removeFirstWordFromProductName()
                      .setProductPrice(ConfigReader.get("VARIANT_PRICE"));
 
         context.scenarioAProductName = shopSetupPage.getCapturedScenarioAName();

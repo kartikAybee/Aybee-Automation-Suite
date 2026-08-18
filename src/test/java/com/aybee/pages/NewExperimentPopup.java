@@ -28,6 +28,10 @@ public class NewExperimentPopup extends BasePage {
     // implementations.
     private final By unitedStatesButton = By.cssSelector("[id='btn-add-united states']");
 
+    // After the target market is selected, the experiment is only actually created once this
+    // Create button is clicked — the country selection alone does not create it.
+    private final By createButton = By.id("create-btn");
+
     @Step("Select Marketing and Ads use case")
     public NewExperimentPopup selectMarketingAndAdsUseCase() {
         wait.until(ExpectedConditions.presenceOfElementLocated(marketingAndAdsUseCase));
@@ -69,6 +73,12 @@ public class NewExperimentPopup extends BasePage {
     public NewExperimentPopup selectUnitedStates() {
         wait.until(ExpectedConditions.presenceOfElementLocated(unitedStatesButton));
         jsClick(unitedStatesButton);
+        // Selecting the country is not enough — the experiment is only created after clicking Create.
+        WebElement create = new WebDriverWait(driver, 30)
+                .until(ExpectedConditions.elementToBeClickable(createButton));
+        ((JavascriptExecutor) driver).executeScript(
+                "arguments[0].scrollIntoView({behavior:'instant',block:'center',inline:'center'});", create);
+        jsClick(createButton);
         return this;
     }
 }

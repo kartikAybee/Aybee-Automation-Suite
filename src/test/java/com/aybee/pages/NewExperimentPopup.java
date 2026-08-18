@@ -32,6 +32,10 @@ public class NewExperimentPopup extends BasePage {
     // [id='...'] is used because CSS #selector syntax cannot represent embedded spaces.
     private final By unitedStatesButton = By.cssSelector("[id='btn-add-united states']");
 
+    // After the target market is selected, the experiment is only actually created once this
+    // Create button is clicked — the country selection alone does not create it.
+    private final By createButton = By.id("create-btn");
+
     // Scroll to the element (both axes, to also handle horizontal/side carousels) BEFORE clicking so a
     // hidden/off-screen card never causes a missed or intercepted click.
     private void scrollToAndClick(By locator) {
@@ -74,6 +78,8 @@ public class NewExperimentPopup extends BasePage {
     @Step("Select United States as target market")
     public NewExperimentPopup selectUnitedStates() {
         scrollToAndClick(unitedStatesButton);
+        // Selecting the country is not enough — click Create to actually create the experiment.
+        scrollToAndClick(createButton);
         return this;
     }
 }

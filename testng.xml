@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<suite name="Aybee PDP Simulation Test Suite" verbose="1" parallel="false">
+    <test name="Sign-In &amp; PDP Simulation Experiment Creation Tests">
+        <classes>
+            <class name="com.aybee.runner.TestRunner"/>
+        </classes>
+    </test>
+</suite>

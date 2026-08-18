@@ -26,6 +26,10 @@ public class NewExperimentPopup extends BasePage {
     // implementations.
     private final By unitedStatesButton = By.cssSelector("[id='btn-add-united states']");
 
+    // After the target market is selected, the experiment is only actually created once this
+    // Create button is clicked — the country selection alone does not create it.
+    private final By createButton = By.id("create-btn");
+
     // Scrolls the element to the centre of the viewport (both axes, to also handle horizontal/side
     // carousels) BEFORE clicking, so a hidden/off-screen card never causes a missed or intercepted
     // click. Every template/use-case selection goes through this.
@@ -56,6 +60,8 @@ public class NewExperimentPopup extends BasePage {
     @Step("Select United States as target market")
     public NewExperimentPopup selectUnitedStates() {
         scrollToAndClick(unitedStatesButton);
+        // Selecting the country is not enough — click Create to actually create the experiment.
+        scrollToAndClick(createButton);
         return this;
     }
 }

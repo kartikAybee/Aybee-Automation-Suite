@@ -80,6 +80,14 @@ public class FormQuestionsPage extends BasePage {
         // Wait for the page to be fully rendered before reloading.
         wait.until(ExpectedConditions.visibilityOfElementLocated(addQuestionButton));
 
+        // DEFAULT_QUESTIONS=no → skip the pre-added / extra-question check entirely and add our
+        // questions directly (index 1), exactly like PDP. Whatever pre-added cards the template may
+        // render are ignored; the participant journey is title-driven and does not expect them.
+        if (!HAS_DEFAULT_QUESTIONS) {
+            System.out.println("[FormQuestions] DEFAULT_QUESTIONS=no — skipping pre-added-question check; adding questions directly (PDP-style)");
+            return;
+        }
+
         driver.navigate().refresh();
 
         // Wait for the page to be ready again after reload.
@@ -961,9 +969,17 @@ public class FormQuestionsPage extends BasePage {
         };
         int retriggerIdx = 0;
 
-        // Click free-question-1 to trigger a Bubble.io DB validation pass before preview,
-        // giving the backend time to mark all questions complete and clear any stale incomplete state.
-        jsClick(By.id("free-question-1"));
+        // Click free-question-1 to trigger a Bubble.io DB validation pass before preview, giving the
+        // backend time to mark all questions complete and clear any stale incomplete state. A
+        // "free-question" is a default/pre-added question, so it only exists when DEFAULT_QUESTIONS=yes;
+        // guard on presence (and the flag) so this no-ops when there are no default questions —
+        // blurActiveElement() below provides the same blur-to-validate effect regardless.
+        if (HAS_DEFAULT_QUESTIONS) {
+            try {
+                By freeQ = By.id("free-question-1");
+                if (!driver.findElements(freeQ).isEmpty()) jsClick(freeQ);
+            } catch (Exception ignored) {}
+        }
         // Native click on the section title so focus actually LEAVES the last field — Bubble only
         // validates a field once it is blurred, and a JS click does not change document.activeElement
         // or fire the field's blur event. Guarded by a presence check so it's a fast no-op if this

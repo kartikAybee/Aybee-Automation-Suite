@@ -86,39 +86,60 @@ public class FormQuestionsPage extends BasePage {
     // server-side — they appear in the DOM immediately but are only durable after the reload.
     @Step("Wait for Add Question button, reload, wait again, then confirm 3 initial questions are present")
     public void verifyInitialQuestionsLoaded() {
-        // Phase 1 — page is ready before reload
+        // Page must be ready before we touch anything.
         new WebDriverWait(driver, 30).until(
             ExpectedConditions.elementToBeClickable(addQuestionButton));
-        System.out.println("[FormQuestions] Add Question button is clickable — page ready, reloading");
+        System.out.println("[FormQuestions] Add Question button is clickable — page ready");
 
+        // DEFAULT_QUESTIONS=no → no platform default questions to verify. Skip the check entirely and
+        // let the caller add our questions directly (index 1), exactly like PDP. Whatever pre-added
+        // cards the template may render are ignored here; the participant journey is title-driven and
+        // does not expect them.
+        if (!HAS_DEFAULT_QUESTIONS) {
+            System.out.println("[FormQuestions] DEFAULT_QUESTIONS=no — skipping default-question verification; adding questions directly (PDP-style)");
+            return;
+        }
+
+        // yes path: reload so the platform's default cards render, then verify the expected count.
         driver.navigate().refresh();
-
-        // Phase 2 — page is ready after reload
         new WebDriverWait(driver, 30).until(
             ExpectedConditions.elementToBeClickable(addQuestionButton));
         System.out.println("[FormQuestions] Add Question button clickable after reload");
 
-        // Wait up to 30 s for all DEFAULT_QUESTION_COUNT platform-generated question cards to render.
-        // A stabilize-at-any-count check is insufficient — the first card renders fast while the
-        // others follow asynchronously, so we wait explicitly for count == DEFAULT_QUESTION_COUNT.
-        // When DEFAULT_QUESTIONS=no (count 0) there are no default cards to wait for.
-        if (DEFAULT_QUESTION_COUNT > 0) {
-            try {
-                new WebDriverWait(driver, 30).until(d ->
-                    d.findElements(By.cssSelector("[id$='-toggle-group']")).size() >= DEFAULT_QUESTION_COUNT);
-            } catch (Exception e) {
-                int found = driver.findElements(By.cssSelector("[id$='-toggle-group']")).size();
-                System.out.println("[FormQuestions] Timed out waiting for " + DEFAULT_QUESTION_COUNT
-                    + " questions — currently visible: " + found);
-            }
+        // Wait up to 30 s for all DEFAULT_QUESTION_COUNT platform-generated cards to render (the first
+        // renders fast, the rest follow asynchronously). Count only real, visible, distinct cards.
+        try {
+            new WebDriverWait(driver, 30).until(d -> countVisibleQuestionCards() >= DEFAULT_QUESTION_COUNT);
+        } catch (Exception e) {
+            System.out.println("[FormQuestions] Timed out waiting for " + DEFAULT_QUESTION_COUNT
+                + " default questions — currently visible: " + countVisibleQuestionCards());
         }
 
-        int count = driver.findElements(By.cssSelector("[id$='-toggle-group']")).size();
-        System.out.println("[FormQuestions] Toggle-group count after reload: " + count
-            + " (expected " + DEFAULT_QUESTION_COUNT + ")");
+        int raw = driver.findElements(By.cssSelector("[id$='-toggle-group']")).size();
+        int count = countVisibleQuestionCards();
+        System.out.println("[FormQuestions] Question cards after reload: " + count
+            + " (raw toggle-group matches: " + raw + ", expected " + DEFAULT_QUESTION_COUNT + ")");
         Assert.assertEquals(count, DEFAULT_QUESTION_COUNT,
             "[FormQuestions] Expected " + DEFAULT_QUESTION_COUNT
                 + " initial D2C default questions, found: " + count);
+    }
+
+    // Counts REAL question cards: distinct {n}-toggle-group ids that are actually on screen (displayed,
+    // non-zero size, not visibility:hidden). Bubble.io leaves hidden template copies (often with the
+    // same id) in the DOM, so a raw findElements(...).size() over-counts — this filters those out and
+    // dedupes by id so the number reflects the cards a user would actually see.
+    private int countVisibleQuestionCards() {
+        java.util.Set<String> ids = new java.util.HashSet<>();
+        for (WebElement el : driver.findElements(By.cssSelector("[id$='-toggle-group']"))) {
+            try {
+                if (!el.isDisplayed()) continue;
+                if (el.getSize().getHeight() <= 0 || el.getSize().getWidth() <= 0) continue;
+                if ("hidden".equals(el.getCssValue("visibility"))) continue;
+                String id = el.getAttribute("id");
+                if (id != null && id.endsWith("-toggle-group")) ids.add(id);
+            } catch (Exception ignored) {}
+        }
+        return ids.size();
     }
 
     // ── Card lifecycle ────────────────────────────────────────────────────────

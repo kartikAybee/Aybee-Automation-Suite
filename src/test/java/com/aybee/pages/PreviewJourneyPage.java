@@ -23,18 +23,12 @@ public class PreviewJourneyPage extends BasePage {
     // is recognised and shown only gender + age (not the full 8 demographics).
     @Step("Navigate to preview URL as logged-in user")
     public void navigateAsLoggedInUser(String previewUrl) {
+        driver.get("about:blank");
         driver.get(previewUrl);
         By anyDemographicOption = By.cssSelector("[id^='answer-Option-']");
-        try {
-            new WebDriverWait(driver, 20).until(
-                ExpectedConditions.presenceOfElementLocated(anyDemographicOption));
-        } catch (Exception e) {
-            // Bubble.io occasionally hangs on first load — refresh once and wait longer.
-            System.out.println("[Preview] Demographics not visible — refreshing once");
-            driver.navigate().refresh();
-            new WebDriverWait(driver, 45).until(
-                ExpectedConditions.presenceOfElementLocated(anyDemographicOption));
-        }
+        // Bubble.io occasionally hangs/blanks on first load — reload and retry (up to 2 reloads)
+        // until the demographic options render.
+        waitForLandmarkElseReload(anyDemographicOption, 20, 2);
     }
 
     // ── Demographic questions ─────────────────────────────────────────────────
@@ -150,15 +144,9 @@ public class PreviewJourneyPage extends BasePage {
         clearSession();
         driver.get(previewUrl);
         By anyDemographicOption = By.cssSelector("[id^='answer-Option-']");
-        try {
-            new WebDriverWait(driver, 15).until(
-                ExpectedConditions.presenceOfElementLocated(anyDemographicOption));
-        } catch (Exception e) {
-            System.out.println("[Session] Guest demographics not visible — refreshing once");
-            driver.navigate().refresh();
-            new WebDriverWait(driver, 45).until(
-                ExpectedConditions.presenceOfElementLocated(anyDemographicOption));
-        }
+        // Reload and retry (up to 2 reloads) until the demographic options render — handles Bubble.io's
+        // occasional infinite-loading / blank first render.
+        waitForLandmarkElseReload(anyDemographicOption, 20, 2);
     }
 
     // ── Consent statement ─────────────────────────────────────────────────────

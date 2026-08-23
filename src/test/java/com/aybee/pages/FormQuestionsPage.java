@@ -842,19 +842,13 @@ public class FormQuestionsPage extends BasePage {
         driver.manage().deleteAllCookies();
         ((JavascriptExecutor) driver).executeScript(
             "window.localStorage.clear(); window.sessionStorage.clear();");
+        driver.get("about:blank");
         driver.get(previewUrl);
         // A guest sees the demographic questions (or the consent statement) first — wait for any of
         // the known first-screen landmarks so we confirm the preview loaded for the guest session.
+        // Reload and retry (up to 2 reloads) to handle Bubble.io's occasional infinite-loading/blank.
         By firstScreen = By.cssSelector(
             "[id^='answer-Option-'], #continue-button, #agree-statement-button");
-        try {
-            new WebDriverWait(driver, 20).until(
-                ExpectedConditions.presenceOfElementLocated(firstScreen));
-        } catch (Exception e) {
-            System.out.println("[Session] Guest preview first screen not visible — refreshing once");
-            driver.navigate().refresh();
-            new WebDriverWait(driver, 45).until(
-                ExpectedConditions.presenceOfElementLocated(firstScreen));
-        }
+        waitForLandmarkElseReload(firstScreen, 20, 2);
     }
 }

@@ -119,25 +119,24 @@ public class PreviewJourneySteps {
         } catch (AssertionError e) {
             context.softAssert.fail("[Preview] Ghost product detected in marketplace: " + e.getMessage());
         }
-        // Use the exact full product name for the active scenario so the right marketplace
-        // card is located — partial config matching could hit the wrong card when both
-        // scenario cards share a common name prefix.
-        String productName = resolveCurrentProductName();
+        // Pass both scenario names and let the page object locate whichever variant (A or B)
+        // actually rendered — no scenario detection needed, and it waits past the ghost card.
         try {
-            marketplace.assertProductData(context.activeProduct(), productName);
+            marketplace.assertProductData(context.activeProduct(),
+                context.scenarioAProductName, context.scenarioBProductName);
         } catch (AssertionError e) {
             context.softAssert.fail("[Preview] Marketplace data assertion failed: " + e.getMessage());
         }
         marketplace.assertNotInterestedButtonPresent();
     }
 
-    // Selects our product from the marketplace list using JS partial matching (handles
-    // special characters like em-dashes that exact findById cannot match). The product
-    // name is chosen based on the detected scenario so the correct card is always targeted.
+    // Selects our product from the marketplace list. Passes both scenario names and lets the
+    // page object pick whichever variant (A or B) actually rendered — no scenario detection
+    // needed, since only one is present at a time.
     @And("I select our product and answer the opener question")
     public void iSelectOurProductAndAnswerOpenerQuestion() {
-        String productName = resolveCurrentProductName();
-        marketplace.selectOurProduct(productName);
+        marketplace.selectOurProduct(
+            context.scenarioAProductName, context.scenarioBProductName);
         previewJourney.answerOpenerQuestion();
     }
 

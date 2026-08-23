@@ -160,11 +160,22 @@ public class ProductDetailPage extends BasePage {
             return;
         }
         try {
-            WebElement img = wait.until(
-                ExpectedConditions.presenceOfElementLocated(changeOnHoverImg));
-            String actual = img.getAttribute("src");
-            if (actual == null || actual.isEmpty()) {
-                System.out.println("[ProductDetail] Skipping image — changeOnHover src was null");
+            wait.until(ExpectedConditions.presenceOfElementLocated(changeOnHoverImg));
+            // Bubble lazy-loads the image: the src starts as a 1x1 "data:image/gif;base64,..."
+            // placeholder and only later resolves to the real URL. Reading too early compares
+            // against that placeholder. Poll (re-finding to dodge re-render staleness) until the
+            // src is a real, non-placeholder URL before asserting.
+            String actual;
+            try {
+                actual = new WebDriverWait(driver, 15).ignoring(Exception.class).until(d -> {
+                    for (WebElement e : d.findElements(changeOnHoverImg)) {
+                        String s = e.getAttribute("src");
+                        if (s != null && !s.isEmpty() && !s.startsWith("data:")) return s;
+                    }
+                    return null;
+                });
+            } catch (Exception timeout) {
+                System.out.println("[ProductDetail] Skipping image — src stayed a lazy-load placeholder");
                 return;
             }
             sa.assertEquals(actual, expected, "[ProductDetail] Image src mismatch");

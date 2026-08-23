@@ -150,10 +150,15 @@ public class ShopSetupPage extends BasePage {
         input = driver.findElement(productNameField);
         input.click();
         capturedScenarioAName = input.getAttribute("value");
-        int firstSpace = capturedScenarioAName.indexOf(' ');
-        capturedScenarioBName = firstSpace >= 0
-                ? capturedScenarioAName.substring(firstSpace + 1)
-                : capturedScenarioAName;
+        // Failsafe against the empty-name ghost product: trim, and if removing the first word
+        // leaves a blank name (single-word or trailing-space titles), keep the full name instead.
+        // Scenario B must never be saved with a blank name.
+        String trimmedAName = capturedScenarioAName == null ? "" : capturedScenarioAName.trim();
+        int firstSpace = trimmedAName.indexOf(' ');
+        String candidateBName = firstSpace >= 0
+                ? trimmedAName.substring(firstSpace + 1).trim()
+                : trimmedAName;
+        capturedScenarioBName = candidateBName.isEmpty() ? trimmedAName : candidateBName;
         input.clear();
         input.sendKeys(capturedScenarioBName);
 
@@ -238,6 +243,10 @@ public class ShopSetupPage extends BasePage {
             }
         }
 
+        // Final failsafe — never click Save with a blank name; that is exactly what creates the
+        // empty-name ghost product on the marketplace. Restore once more, then refuse to save.
+        assertScenarioBNameNotBlankBeforeSave();
+
         // This button does not follow the ghost→filled CSS pattern used by other submit buttons,
         // so clickWhenEnabled may time out. Fall back to jsClick in that case.
         try {
@@ -253,6 +262,31 @@ public class ShopSetupPage extends BasePage {
         // Give Bubble.io time to write the new card's dynamic ID after the popup closes.
         try { Thread.sleep(3_000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
         return this;
+    }
+
+    // Hard guarantee that Scenario B's name field is non-blank at save time. Reads the field,
+    // and if it is blank does one final restore from capturedScenarioBName (which the trim guard
+    // ensures is non-blank); if it still cannot be filled, throws rather than saving a ghost.
+    private void assertScenarioBNameNotBlankBeforeSave() {
+        String current = null;
+        try { current = driver.findElement(productNameField).getAttribute("value"); } catch (Exception ignored) {}
+        if (current == null || current.trim().isEmpty()) {
+            if (capturedScenarioBName != null && !capturedScenarioBName.trim().isEmpty()) {
+                System.out.println("[ShopSetup] Name blank at save time — final restore: " + capturedScenarioBName);
+                WebElement nameInput = wait.until(
+                    ExpectedConditions.visibilityOfElementLocated(productNameField));
+                nameInput.clear();
+                nameInput.sendKeys(capturedScenarioBName);
+                blurActiveElement();
+                try { Thread.sleep(1000); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+                try { current = driver.findElement(productNameField).getAttribute("value"); } catch (Exception ignored) {}
+            }
+            if (current == null || current.trim().isEmpty()) {
+                throw new RuntimeException(
+                    "[ShopSetup] Refusing to save — Scenario B product name is blank, which would "
+                    + "create an empty-name ghost product. Expected: [" + capturedScenarioBName + "]");
+            }
+        }
     }
 
     // Waits for the popup to be fully populated from the ASIN fetch — both name and price

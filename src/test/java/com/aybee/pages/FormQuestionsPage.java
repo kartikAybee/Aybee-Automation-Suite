@@ -205,10 +205,41 @@ public class FormQuestionsPage extends BasePage {
 
     @Step("Enter question text for question {index}")
     public FormQuestionsPage enterQuestionText(int index, String text) {
-        WebElement input = scrollTo(By.id(index + "-questionInput"));
+        By inputLoc = By.id(index + "-questionInput");
+        // The question card can be (or become) collapsed after it is added — especially the first
+        // one, before Bubble.io settles — leaving the input present but non-interactable
+        // ("element not interactable"). Expand it, and if the input is still hidden, force-expand
+        // via the toggle group and wait for it to be visible before typing.
+        expandIfCollapsed(index);
+        ensureQuestionInputInteractable(index, inputLoc);
+        WebElement input = new WebDriverWait(driver, 15).until(
+            ExpectedConditions.elementToBeClickable(inputLoc));
+        scrollToCenter(input);
         input.clear();
         input.sendKeys(text);
         return this;
+    }
+
+    // Ensures the question-text input for {index} is visible/interactable. A collapsed card renders
+    // the input but hidden (display:none), so isDisplayed() is a reliable "expanded?" signal — an
+    // off-screen-but-expanded input still reports displayed. Only toggles when the input is hidden,
+    // so it never accidentally collapses an already-open card.
+    private void ensureQuestionInputInteractable(int index, By inputLoc) {
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            if (!driver.findElements(inputLoc).isEmpty()) {
+                try {
+                    if (driver.findElement(inputLoc).isDisplayed()) return;
+                } catch (Exception ignored) {}
+            }
+            System.out.println("[FormQuestions] Q" + index
+                + " input hidden — expanding via toggle group (attempt " + attempt + ")");
+            jsClick(By.id(index + "-toggle-group"));
+            try {
+                new WebDriverWait(driver, 10).until(d ->
+                    !d.findElements(inputLoc).isEmpty() && d.findElement(inputLoc).isDisplayed());
+                return;
+            } catch (Exception ignored) {}
+        }
     }
 
     // Dropdown is a native <select>; values include literal quote characters per DOM.

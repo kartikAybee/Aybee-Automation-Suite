@@ -5,6 +5,7 @@ import io.qameta.allure.Step;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import com.aybee.utils.ScreenshotSoftAssert;
@@ -42,6 +43,10 @@ public class MarketplaceListPage extends BasePage {
     // An empty suffix indicates a ghost product from an incomplete shop setup save.
     @Step("Assert no marketplace products have an empty product name")
     public MarketplaceListPage assertNoEmptyProductIds() {
+        // Wait for the real product cards to load first — Bubble shows an empty-name ghost card
+        // before injecting the real ones, and checking too early flags that transient ghost as an
+        // incomplete save. Once the real cards are in, a still-empty card is a genuine ghost.
+        waitForRealProductCards();
         SoftAssert sa = new ScreenshotSoftAssert();
         List<WebElement> buttons = driver.findElements(
             By.cssSelector("[id^='select-item-overview-organic-']"));
@@ -53,6 +58,51 @@ public class MarketplaceListPage extends BasePage {
         }
         sa.assertAll();
         return this;
+    }
+
+    // Bubble injects an empty-name "ghost" card before the real product cards finish loading, and
+    // that ghost satisfies a naive "any select-item-overview-organic-* present" wait. These helpers
+    // let the marketplace steps wait for REAL (non-empty-suffix) cards and ignore the ghost.
+
+    // Waits until at least one real card is present, lets late cards settle, and returns the real
+    // (non-ghost) card names.
+    private List<String> waitForRealProductCards() {
+        new WebDriverWait(driver, 30).until(d -> hasRealProductCard(d));
+        try { Thread.sleep(1500); } catch (InterruptedException ignored) {}
+        List<String> names = new java.util.ArrayList<>();
+        for (WebElement e : driver.findElements(
+                By.cssSelector("[id^='select-item-overview-organic-']"))) {
+            String s = e.getAttribute("id").replace("select-item-overview-organic-", "");
+            if (s != null && !s.trim().isEmpty()) names.add(s);
+        }
+        return names;
+    }
+
+    private boolean hasRealProductCard(org.openqa.selenium.WebDriver d) {
+        for (WebElement e : d.findElements(
+                By.cssSelector("[id^='select-item-overview-organic-']"))) {
+            String s = e.getAttribute("id").replace("select-item-overview-organic-", "");
+            if (s != null && !s.trim().isEmpty()) return true;
+        }
+        return false;
+    }
+
+    // Polls until our product card (matching one of the given names by exact id or partial id
+    // match) is present, ignoring the transient empty-name ghost. Throws on timeout.
+    private WebElement waitForProductCard(String... names) {
+        return new WebDriverWait(driver, 30).until(d -> {
+            for (String n : names) {
+                if (n == null || n.trim().isEmpty()) continue;
+                WebElement b = findById("select-item-overview-organic-" + n);
+                if (b == null) b = findSelectButtonByPartialId(n);
+                if (b != null) {
+                    String suffix = b.getAttribute("id")
+                        .replace("select-item-overview-organic-", "");
+                    if (!suffix.trim().isEmpty()) return b;
+                }
+            }
+            return null;
+        });
     }
 
     // Clicks Not Interested — participant should be filtered out and redirected to login.
@@ -115,10 +165,16 @@ public class MarketplaceListPage extends BasePage {
     // Soft-asserts all fields so every check runs even if one fails.
     // Caller should catch AssertionError to let the flow continue past this step.
     @Step("Assert marketplace product data matches shop setup snapshot")
-    public MarketplaceListPage assertProductData(ProductSnapshot snap, String partialName) {
-        WebElement btn = findSelectButtonByPartialId(partialName);
-        if (btn == null) {
-            throw new RuntimeException("Product select button not found for: " + partialName);
+    public MarketplaceListPage assertProductData(ProductSnapshot snap,
+                                                 String scenarioAName, String scenarioBName) {
+        // Wait for our real card (scenario A or B, whichever rendered), ignoring the empty-name
+        // ghost — matching too early against the ghost-only DOM threw "select button not found".
+        WebElement btn;
+        try {
+            btn = waitForProductCard(scenarioAName, scenarioBName);
+        } catch (Exception e) {
+            throw new RuntimeException("Product select button not found. Scenario A: ["
+                + scenarioAName + "] Scenario B: [" + scenarioBName + "]");
         }
         String fullName = btn.getAttribute("id").replace("select-item-overview-organic-", "");
 
@@ -149,23 +205,56 @@ public class MarketplaceListPage extends BasePage {
         return this;
     }
 
-    // Selects the product whose button ID is exactly select-item-overview-organic-{fullName}.
-    // Uses document.getElementById() (via BasePage.findById) which handles spaces, em-dashes,
-    // commas, and any other special characters that break By.id() / By.cssSelector().
-    // Polls until the button appears — the marketplace re-renders asynchronously after
-    // returning from cart and our card may load after other products.
-    @Step("Select our product from marketplace list")
-    public String selectOurProduct(String fullName) {
-        String buttonId = "select-item-overview-organic-" + fullName;
+    // Selects our product card by trying both scenario names (A or B, whichever actually
+    // rendered) — no dependency on scenario detection, since only one variant is present at a
+    // time and we simply pick whichever exists. Polls because the marketplace re-renders
+    // asynchronously and our card may load after other products; falls back to partial matching
+    // the same way assertProductData does.
+    @Step("Select our product from marketplace list (scenario A or B, whichever is present)")
+    public String selectOurProduct(String scenarioAName, String scenarioBName) {
         WebElement btn;
         try {
-            btn = new WebDriverWait(driver, 30).until(d -> findById(buttonId));
+            btn = new WebDriverWait(driver, 30).until(d -> {
+                WebElement b = findById("select-item-overview-organic-" + scenarioAName);
+                if (b == null) b = findById("select-item-overview-organic-" + scenarioBName);
+                if (b == null) b = findSelectButtonByPartialId(scenarioAName);
+                if (b == null) b = findSelectButtonByPartialId(scenarioBName);
+                return b;
+            });
         } catch (Exception e) {
-            throw new RuntimeException("Select button not found: " + buttonId);
+            throw new RuntimeException("Our product select button not found. Scenario A: ["
+                + scenarioAName + "] Scenario B: [" + scenarioBName + "]");
         }
-        scrollToCenter(btn);
-        btn.click();
-        return fullName;
+        String resolvedName = btn.getAttribute("id").replace("select-item-overview-organic-", "");
+
+        // Bubble stacks a transparent overlay on top of the product card, so clicks are finicky.
+        // Primary: scroll the card to centre, then force a JS click on it. If that doesn't
+        // register the selection (the opener-question popup never appears), fall back to a real
+        // mouse hover + click via Actions — that lands on whatever overlay sits on top exactly as
+        // a user's click would, firing Bubble's select workflow.
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        js.executeScript("arguments[0].scrollIntoView({block:'center'});", btn);
+        js.executeScript("arguments[0].click();", btn);
+
+        if (!openerPopupAppeared(5)) {
+            System.out.println("[Marketplace] JS click did not open the opener popup — "
+                + "falling back to mouse hover + click for: " + resolvedName);
+            new Actions(driver).moveToElement(btn).click().perform();
+        }
+        System.out.println("[Marketplace] Selected our product: " + resolvedName);
+        return resolvedName;
+    }
+
+    // The opener-question popup (next-open-product button) appears only once a product is
+    // actually selected — the reliable signal that a click landed on Bubble's select workflow.
+    private boolean openerPopupAppeared(int timeoutSecs) {
+        try {
+            new WebDriverWait(driver, timeoutSecs).until(
+                ExpectedConditions.presenceOfElementLocated(By.id("next-open-product")));
+            return true;
+        } catch (Exception notYet) {
+            return false;
+        }
     }
 
     // Selects our product using the exact full names captured from ASIN lookup during
@@ -232,19 +321,16 @@ public class MarketplaceListPage extends BasePage {
     // at a time. Returns "A", "B", or "unknown".
     @Step("Detect which scenario (A or B) the current participant is assigned to")
     public String detectCurrentScenario(String scenarioAName, String scenarioBName) {
-        List<WebElement> buttons = wait.until(
-            ExpectedConditions.presenceOfAllElementsLocatedBy(
-                By.cssSelector("[id^='select-item-overview-organic-']")));
-        for (WebElement btn : buttons) {
-            String fullName = btn.getAttribute("id").replace("select-item-overview-organic-", "");
+        // Wait for the real cards — reading names off the ghost-only DOM always yields "unknown".
+        List<String> names = waitForRealProductCards();
+        for (String fullName : names) {
             if (fullName.equalsIgnoreCase(scenarioAName)) return "A";
             if (fullName.equalsIgnoreCase(scenarioBName)) return "B";
         }
         System.out.println("[Marketplace] Scenario not detected. Scenario A: [" + scenarioAName
             + "] Scenario B: [" + scenarioBName + "]");
-        System.out.println("[Marketplace] Button IDs found:");
-        for (WebElement btn : buttons)
-            System.out.println("  " + btn.getAttribute("id"));
+        System.out.println("[Marketplace] Real product card names found:");
+        for (String n : names) System.out.println("  " + n);
         return "unknown";
     }
 

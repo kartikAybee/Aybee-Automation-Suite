@@ -6,6 +6,7 @@ import com.aybee.driver.DriverManager;
 import com.aybee.utils.DiagnosticsCollector;
 import com.aybee.utils.JamManager;
 import io.cucumber.java.After;
+import io.cucumber.java.AfterStep;
 import io.cucumber.java.Before;
 import io.cucumber.java.Scenario;
 import io.qameta.allure.Allure;
@@ -36,6 +37,16 @@ public class AllureHooks {
         // Restore persistent cross-scenario state (preview URL, product snapshots, etc.)
         // into the fresh PicoContainer-scoped context so subsequent feature files can use it.
         GlobalTestState.restoreInto(context);
+    }
+
+    @AfterStep
+    public void afterStep(Scenario scenario) {
+        // Attach a screenshot after EVERY step so each step in the Allure report has its own image.
+        try {
+            byte[] screenshot = ((TakesScreenshot) DriverManager.getDriver())
+                    .getScreenshotAs(OutputType.BYTES);
+            Allure.addAttachment("Step screenshot", new ByteArrayInputStream(screenshot));
+        } catch (Exception ignored) {}
     }
 
     @After

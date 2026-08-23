@@ -8,6 +8,7 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.FluentWait;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import com.aybee.utils.ScreenshotSoftAssert;
 import org.testng.asserts.SoftAssert;
 
 import java.util.concurrent.TimeUnit;
@@ -80,7 +81,7 @@ public class ProductDetailPage extends BasePage {
     // Soft-asserts so both checks run even if one fails; caller catches AssertionError.
     @Step("Assert Add to Cart button is in blocked state (opacity 0.7, no navigation)")
     public ProductDetailPage assertAddToCartBlocked() {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         assertButtonBlocked(sa, addToCartButton, "Add to Cart");
         sa.assertAll();
         return this;
@@ -88,7 +89,7 @@ public class ProductDetailPage extends BasePage {
 
     @Step("Assert Buy Now button is in blocked state (opacity 0.7, no navigation)")
     public ProductDetailPage assertBuyNowBlocked() {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         assertButtonBlocked(sa, buyNowButton, "Buy Now");
         sa.assertAll();
         return this;
@@ -142,7 +143,7 @@ public class ProductDetailPage extends BasePage {
     // even if one fails. Caller should catch AssertionError to let the flow continue.
     @Step("Assert product detail page data matches shop setup snapshot")
     public ProductDetailPage assertProductData(ProductSnapshot snap) {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         softAssertImageSrc(sa, snap.imageSrc);
         softAssertPrices(sa, snap.price);
         softAssertRatings(sa, snap.ratings);

@@ -1,10 +1,13 @@
 package com.aybee.context;
 
+import com.aybee.utils.ScreenshotSoftAssert;
 import org.testng.asserts.SoftAssert;
 
 public class ScenarioContext {
 
-    public final SoftAssert softAssert = new SoftAssert();
+    // ScreenshotSoftAssert captures a screenshot the instant each assertion fails (see class doc),
+    // so the Allure report shows exactly which page produced each failure.
+    public final SoftAssert softAssert = new ScreenshotSoftAssert();
 
     // Captured during shop setup before any edits — the unmodified Scenario A product state.
     public ProductSnapshot scenarioAProduct;

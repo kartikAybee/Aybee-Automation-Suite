@@ -7,6 +7,7 @@ import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.FluentWait;
+import com.aybee.utils.ScreenshotSoftAssert;
 import org.testng.asserts.SoftAssert;
 
 import java.util.Arrays;
@@ -54,7 +55,7 @@ public class ParticipantFormPage extends BasePage {
 
     @Step("Answer long text question and continue")
     public void answerLongTextQuestion() {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         waitForQuestionTitle(sa);
         answerLongText(sa);
         clickContinue(sa);
@@ -63,7 +64,7 @@ public class ParticipantFormPage extends BasePage {
 
     @Step("Answer limited choice question and continue")
     public void answerLimitedChoiceQuestion() {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         waitForQuestionTitle(sa);
         answerLimitedChoice(sa);
         clickContinue(sa);
@@ -72,7 +73,7 @@ public class ParticipantFormPage extends BasePage {
 
     @Step("Answer single choice question and continue")
     public void answerSingleChoiceQuestion() {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         waitForQuestionTitle(sa);
         answerSingleChoice(sa);
         clickContinue(sa);
@@ -81,7 +82,7 @@ public class ParticipantFormPage extends BasePage {
 
     @Step("Answer multiple choice question and continue")
     public void answerMultipleChoiceQuestion() {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         waitForQuestionTitle(sa);
         answerMultipleChoice(sa);
         clickContinue(sa);
@@ -90,7 +91,7 @@ public class ParticipantFormPage extends BasePage {
 
     @Step("Answer horizontal Likert question and continue")
     public void answerHorizontalLikertQuestion() {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         waitForQuestionTitle(sa);
         answerLikertHorizontal(sa);
         clickContinue(sa);
@@ -99,7 +100,7 @@ public class ParticipantFormPage extends BasePage {
 
     @Step("Answer vertical Likert question and continue")
     public void answerVerticalLikertQuestion() {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         waitForQuestionTitle(sa);
         answerLikertVertical(sa);
         clickContinue(sa);
@@ -108,7 +109,7 @@ public class ParticipantFormPage extends BasePage {
 
     @Step("Verify participant form survey redirected to login page")
     public void verifyCompletionRedirect() {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         try {
             new FluentWait<>(driver)
                 .withTimeout(30, TimeUnit.SECONDS)
@@ -125,7 +126,7 @@ public class ParticipantFormPage extends BasePage {
 
     @Step("Answer all participant form questions and verify redirect to login page on completion")
     public void answerAllAndVerifyCompletion(String currentScenario) {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
 
         // Q1, Q2, Q6 are always shown for participants who bought our product.
         // Q3, Q4, Q5 each select both options in their filter section (both products / both

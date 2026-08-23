@@ -8,6 +8,7 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.FluentWait;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import com.aybee.utils.ScreenshotSoftAssert;
 import org.testng.asserts.SoftAssert;
 
 import java.util.List;
@@ -66,7 +67,7 @@ public class PreviewJourneyPage extends BasePage {
 
     @Step("Answer demographic questions Q1–Q9")
     public PreviewJourneyPage answerDemographicQuestions() {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         answerDemographicQuestion("Male", sa);
         answerDemographicQuestion("25 to 34", sa);
         answerDemographicQuestion("Full-Time Employee", sa);
@@ -81,7 +82,7 @@ public class PreviewJourneyPage extends BasePage {
 
     @Step("Answer demographic questions Q3–Q8 (starting from Full-Time Employee)")
     public PreviewJourneyPage answerDemographicQuestionsFromQ3() {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         answerDemographicQuestion("Full-Time Employee", sa);
         answerDemographicQuestion("Single", sa);
         answerDemographicQuestion("Homeowner", sa);
@@ -95,7 +96,7 @@ public class PreviewJourneyPage extends BasePage {
     // Logged-in preview — platform only asks gender and age when a session is already active.
     @Step("Answer demographic questions — gender (Male) and age (25 to 34) only")
     public PreviewJourneyPage answerDemographicsGenderAndAge() {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         answerDemographicQuestion("Male", sa);
         answerDemographicQuestion("25 to 34", sa);
         sa.assertAll();
@@ -203,6 +204,20 @@ public class PreviewJourneyPage extends BasePage {
         // Click preview — opens a new tab with a fresh Bubble.io session.
         String mainWindow = driver.getWindowHandle();
         jsClick(previewBtn);
+
+        // The Desktop/Mobile chooser popup appears after clicking Preview and does NOT auto-open a
+        // tab — Desktop must be selected first (mirrors FormQuestionsPage.openPreviewChooserAndSelectDesktop()).
+        // Best-effort so it works whether or not the chooser is shown: poll briefly, click if present.
+        By desktopBtn = By.id("preview-desktop");
+        try {
+            WebElement desktop = new WebDriverWait(driver, 10).until(
+                ExpectedConditions.elementToBeClickable(desktopBtn));
+            scrollToCenter(desktop);
+            jsClick(desktopBtn);
+            System.out.println("[Preview] Selected Desktop in preview chooser on re-trigger");
+        } catch (Exception e) {
+            System.out.println("[Preview] Desktop chooser not shown after preview click — proceeding");
+        }
 
         // Switch to the new preview tab.
         new WebDriverWait(driver, 30).until(d -> d.getWindowHandles().size() > 1);

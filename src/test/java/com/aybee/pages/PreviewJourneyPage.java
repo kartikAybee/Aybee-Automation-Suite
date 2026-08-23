@@ -261,13 +261,7 @@ public class PreviewJourneyPage extends BasePage {
             driver.switchTo().window(editorWindowHandle);
             retriggerPreviewFromEditor();
         }
-        try {
-            new WebDriverWait(driver, 15).until(ExpectedConditions.presenceOfElementLocated(demographics));
-        } catch (Exception e) {
-            System.out.println("[D2C Logged-in] Demographics not yet visible — refreshing");
-            driver.navigate().refresh();
-            new WebDriverWait(driver, 45).until(ExpectedConditions.presenceOfElementLocated(demographics));
-        }
+        waitForLandmarkElseReload(demographics, 20, 2);
     }
 
     private void retriggerPreviewFromEditor() {
@@ -292,16 +286,9 @@ public class PreviewJourneyPage extends BasePage {
     @Step("Clear session and navigate to preview URL as guest (with infinite loading retry)")
     public void navigateAsGuest(String previewUrl) {
         clearSession();
+        driver.get("about:blank");
         driver.get(previewUrl);
         By anyDemographicOption = By.cssSelector("[id^='answer-Option-']");
-        try {
-            new WebDriverWait(driver, 15).until(
-                ExpectedConditions.presenceOfElementLocated(anyDemographicOption));
-        } catch (Exception e) {
-            System.out.println("[D2C Session] Demographic options not yet visible — refreshing page");
-            driver.navigate().refresh();
-            new WebDriverWait(driver, 45).until(
-                ExpectedConditions.presenceOfElementLocated(anyDemographicOption));
-        }
+        waitForLandmarkElseReload(anyDemographicOption, 20, 2);
     }
 }

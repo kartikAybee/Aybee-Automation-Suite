@@ -1050,8 +1050,9 @@ public class FormQuestionsPage extends BasePage {
         driver.manage().deleteAllCookies();
         ((JavascriptExecutor) driver).executeScript(
             "window.localStorage.clear(); window.sessionStorage.clear();");
+        driver.get("about:blank");
         driver.get(previewUrl);
-        new WebDriverWait(driver, 30).until(
-            ExpectedConditions.visibilityOfElementLocated(By.id("continue-button")));
+        // Reload past Bubble's occasional ghost/blank first render before the page is ready.
+        waitForLandmarkElseReload(By.id("continue-button"), 20, 2);
     }
 }

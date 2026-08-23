@@ -167,12 +167,12 @@ public class PreviewJourneyPage extends BasePage {
     @Step("Clear session and navigate to preview URL as guest")
     public void navigateAsGuest(String previewUrl) {
         clearSession();
+        driver.get("about:blank");
         driver.get(previewUrl);
         // Wait for the first answer option to appear — continue-button only renders AFTER
-        // an option is selected, so it cannot serve as a page-ready indicator here.
-        new WebDriverWait(driver, 30).until(
-            ExpectedConditions.presenceOfElementLocated(
-                By.cssSelector("[id^='answer-Option-']")));
+        // an option is selected, so it cannot serve as a page-ready indicator here. Reload past
+        // Bubble's occasional ghost/blank first render.
+        waitForLandmarkElseReload(By.cssSelector("[id^='answer-Option-']"), 20, 2);
     }
 
     // Clears the session then navigates to the preview URL as a guest participant.
@@ -181,27 +181,19 @@ public class PreviewJourneyPage extends BasePage {
     @Step("Clear session and navigate to preview URL as guest (CTR — with infinite loading retry)")
     public void navigateAsGuestCtr(String previewUrl) {
         clearSession();
+        driver.get("about:blank");
         driver.get(previewUrl);
         By anyDemographicOption = By.cssSelector("[id^='answer-Option-']");
-        try {
-            new WebDriverWait(driver, 15).until(
-                ExpectedConditions.presenceOfElementLocated(anyDemographicOption));
-        } catch (Exception e) {
-            System.out.println("[CTR Session] Demographic options not yet visible — refreshing page");
-            driver.navigate().refresh();
-            new WebDriverWait(driver, 45).until(
-                ExpectedConditions.presenceOfElementLocated(anyDemographicOption));
-        }
+        waitForLandmarkElseReload(anyDemographicOption, 20, 2);
     }
 
     // CTR preview navigates to the URL without clearing session — the logged-in user
     // sees the demographics flow including scenario selection on the consent page.
     @Step("Navigate to preview URL as logged-in user (no session clearing)")
     public void navigateAsLoggedInUser(String previewUrl) {
+        driver.get("about:blank");
         driver.get(previewUrl);
-        new WebDriverWait(driver, 30).until(
-            ExpectedConditions.presenceOfElementLocated(
-                By.cssSelector("[id^='answer-Option-']")));
+        waitForLandmarkElseReload(By.cssSelector("[id^='answer-Option-']"), 20, 2);
     }
 
     // ── CTR consent ───────────────────────────────────────────────────────────

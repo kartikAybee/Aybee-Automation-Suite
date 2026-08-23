@@ -121,13 +121,12 @@ public class PreviewJourneyPage extends BasePage {
     // the scenario (AllureHooks calls assertAll at teardown).
     @Step("Preview as logged-in user, accept gender/age/consent, then click Not Interested and verify redirect")
     public void previewLoggedInAndClickNotInterested(String previewUrl, SoftAssert sa) {
+        driver.get("about:blank");
         driver.get(previewUrl);
-        // First demographic option confirms the preview rendered (continue-button only
-        // appears AFTER an option is picked, so it cannot be the page-ready signal).
-        try {
-            new WebDriverWait(driver, 30).until(
-                ExpectedConditions.presenceOfElementLocated(anyDemographicOption));
-        } catch (Exception e) {
+        // First demographic option confirms the preview rendered (continue-button only appears AFTER an
+        // option is picked, so it cannot be the page-ready signal). New preview logic: reload-and-retry
+        // past Bubble's occasional ghost/blank first render before giving up with diagnostics.
+        if (!waitForLandmarkElseReload(anyDemographicOption, 20, 2)) {
             String pageUrl = "";
             String pageTitle = "";
             String visibleIds = "";
@@ -619,14 +618,7 @@ public class PreviewJourneyPage extends BasePage {
     public void navigateAsGuest(String previewUrl) {
         clearSession();
         driver.get(previewUrl);
-        try {
-            new WebDriverWait(driver, 15).until(
-                ExpectedConditions.presenceOfElementLocated(anyDemographicOption));
-        } catch (Exception e) {
-            System.out.println("[Session] Demographic options not yet visible — refreshing page");
-            driver.navigate().refresh();
-            new WebDriverWait(driver, 45).until(
-                ExpectedConditions.presenceOfElementLocated(anyDemographicOption));
-        }
+        // New preview logic: reload-and-retry past Bubble's occasional ghost/blank first render.
+        waitForLandmarkElseReload(anyDemographicOption, 20, 2);
     }
 }

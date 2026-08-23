@@ -220,4 +220,30 @@ public abstract class BasePage {
         WebElement container = wait.until(ExpectedConditions.presenceOfElementLocated(containerLocator));
         container.findElement(By.cssSelector("input[type='file']")).sendKeys(absoluteFilePath);
     }
+
+    // Bubble.io occasionally fails to render a step's content on initial load (blank / infinite
+    // loading spinner); a page reload reliably brings it up. Waits for ANY given landmark to be PRESENT;
+    // if none appear within timeoutSecs it reloads the page and waits again, up to maxReloads reloads.
+    protected boolean waitForAnyLandmarkElseReload(java.util.List<By> landmarks, int timeoutSecs, int maxReloads) {
+        for (int attempt = 0; attempt <= maxReloads; attempt++) {
+            try {
+                new WebDriverWait(driver, timeoutSecs).until((org.openqa.selenium.WebDriver d) -> {
+                    for (By by : landmarks) { if (!d.findElements(by).isEmpty()) return true; }
+                    return false;
+                });
+                if (attempt > 0) System.out.println("[Reload] Landmark appeared after reload " + attempt);
+                return true;
+            } catch (Exception e) {
+                if (attempt < maxReloads) {
+                    System.out.println("[Reload] None of " + landmarks + " within " + timeoutSecs + "s — reloading (" + (attempt + 1) + "/" + maxReloads + ")");
+                    try { driver.navigate().refresh(); } catch (Exception ignored) {}
+                }
+            }
+        }
+        System.out.println("[Reload] Landmarks " + landmarks + " never appeared after " + maxReloads + " reload(s)");
+        return false;
+    }
+    protected boolean waitForLandmarkElseReload(By landmark, int timeoutSecs, int maxReloads) {
+        return waitForAnyLandmarkElseReload(java.util.Collections.singletonList(landmark), timeoutSecs, maxReloads);
+    }
 }

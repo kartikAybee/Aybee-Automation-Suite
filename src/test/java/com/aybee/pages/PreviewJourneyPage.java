@@ -7,6 +7,7 @@ import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import com.aybee.utils.ScreenshotSoftAssert;
 import org.testng.asserts.SoftAssert;
 
 // Preview journey — logged-in owner path (Not Interested / No Buying Intent) AND the guest path.
@@ -85,7 +86,7 @@ public class PreviewJourneyPage extends BasePage {
     @Step("Answer demographic questions — gender (Male) and age (25 to 34) only")
     public PreviewJourneyPage answerDemographicsGenderAndAge() {
         lastAnsweredDemographicOption = null;
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         answerDemographicQuestion("Male", sa);
         answerDemographicQuestion("25 to 34", sa);
         sa.assertAll();
@@ -97,7 +98,7 @@ public class PreviewJourneyPage extends BasePage {
     @Step("Answer all 8 guest demographic questions")
     public PreviewJourneyPage answerAllDemographicQuestions() {
         lastAnsweredDemographicOption = null;
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         answerDemographicQuestion("Male", sa);
         answerDemographicQuestion("25 to 34", sa);
         answerDemographicQuestion("Full-Time Employee", sa);

@@ -9,6 +9,7 @@ import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import com.aybee.utils.ScreenshotSoftAssert;
 import org.testng.asserts.SoftAssert;
 
 import java.util.List;
@@ -118,7 +119,7 @@ public class ProductDetailPage extends BasePage {
     // before calling this — the details stay readable, but we still snapshot them first.
     @Step("Verify buy-now popup appears, closes on close-slider, and reopens on show-slider-again")
     public void verifyBuyPopupCloseAndReopen() {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
 
         // 1. Dynamically wait for the timed popup (never a fixed 20s sleep).
         boolean appeared = waitForBuyNowPopup(30);
@@ -160,7 +161,7 @@ public class ProductDetailPage extends BasePage {
     // until the slider moves), click Buy Now, and verify the redirect to the question page.
     @Step("Move decision slider to {targetPercent}%, submit Buy Now, and verify redirect to questions")
     public void rateAndBuyNow(int targetPercent) {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
 
         WebElement slider = new WebDriverWait(driver, 30)
             .until(ExpectedConditions.presenceOfElementLocated(ratingSliderInput));
@@ -337,7 +338,7 @@ public class ProductDetailPage extends BasePage {
     // capture is wired). If NO snapshot is stored at all, records one clear soft failure.
     @Step("Verify product detail page matches the assigned scenario")
     public void verifyProductMatchesAssignedScenario(ScenarioContext ctx) {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         waitUntilLoaded();
         String displayedTitle = getText(productTitle).trim();
         System.out.println("[ProductDetail] Displayed product title: " + displayedTitle);

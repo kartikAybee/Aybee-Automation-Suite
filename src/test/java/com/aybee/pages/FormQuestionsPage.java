@@ -37,6 +37,12 @@ public class FormQuestionsPage extends BasePage {
     // Split Tests) are the only ones, starting at index 1 and using that index for ALL element IDs.
     public static final int FIRST_QUESTION_INDEX = 1;
 
+    // Answer-option input ids now carry a trailing section suffix — full format is
+    // "{q}--answerInput-{k}-Post-Shop" (numbers/rest unchanged, only this suffix is new). Applied to
+    // every answerInput id usage: exact locators append it, and the [id^=...] detection selectors
+    // additionally require [id$='<suffix>']. Other element ids (icons, dropdowns) are unchanged.
+    public static final String ANSWER_INPUT_SUFFIX = "-Post-Shop";
+
     private final By addQuestionButton    = By.id("newproject_formquestions_addquestion_button");
     private final By addManuallyButton    = By.id("add-manually-btn");
     private final By previewJourneyButton = By.id("newproject_formquestions_previewjourney_button");
@@ -258,6 +264,10 @@ public class FormQuestionsPage extends BasePage {
                     + "' (expected to contain '" + displayValue + "') — proceeding; selection reflects on the frontend");
             }
         } catch (Exception ignored) {}
+        // Setup for this split-test question is done — click the section title now so the field blurs
+        // and Bubble.io commits its reactive save immediately, rather than deferring the whole
+        // validation pass to preview time. Makes the later validate/preview handling faster.
+        clickSectionTitleToCommit();
         return this;
     }
 
@@ -543,7 +553,7 @@ public class FormQuestionsPage extends BasePage {
             ExpectedConditions.visibilityOfElementLocated(By.id(index + "-toggle-group")));
         scrollToCenter(card);
         new WebDriverWait(driver, 60).until(d ->
-            d.findElements(By.cssSelector("[id^='" + index + "--answerInput-']")).size() >= expectedCount);
+            d.findElements(By.cssSelector("[id^='" + index + "--answerInput-'][id$='" + ANSWER_INPUT_SUFFIX + "']")).size() >= expectedCount);
         try { Thread.sleep(1500); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
         return this;
     }
@@ -552,13 +562,13 @@ public class FormQuestionsPage extends BasePage {
 
     private int countAnswerOptions(int questionIndex) {
         return driver.findElements(
-            By.cssSelector("[id^='" + questionIndex + "--answerInput-']")).size();
+            By.cssSelector("[id^='" + questionIndex + "--answerInput-'][id$='" + ANSWER_INPUT_SUFFIX + "']")).size();
     }
 
     @Step("Wait for answer options to appear for question {questionIndex}")
     public FormQuestionsPage waitForAnswerOptions(int questionIndex) {
         new WebDriverWait(driver, 30).until(d ->
-            !d.findElements(By.cssSelector("[id^='" + questionIndex + "--answerInput-']")).isEmpty());
+            !d.findElements(By.cssSelector("[id^='" + questionIndex + "--answerInput-'][id$='" + ANSWER_INPUT_SUFFIX + "']")).isEmpty());
         return this;
     }
 
@@ -566,7 +576,7 @@ public class FormQuestionsPage extends BasePage {
     public FormQuestionsPage waitForAnswerOptionCount(int questionIndex, int expectedCount) {
         new WebDriverWait(driver, 30).until(d ->
             d.findElements(
-                By.cssSelector("[id^='" + questionIndex + "--answerInput-']")).size() >= expectedCount);
+                By.cssSelector("[id^='" + questionIndex + "--answerInput-'][id$='" + ANSWER_INPUT_SUFFIX + "']")).size() >= expectedCount);
         return this;
     }
 
@@ -578,7 +588,7 @@ public class FormQuestionsPage extends BasePage {
         int current = countAnswerOptions(questionIndex);
         while (current > targetCount) {
             By deleteIcon   = By.id(questionIndex + "-deleteIcon-" + current);
-            By deletedInput = By.id(questionIndex + "--answerInput-" + current);
+            By deletedInput = By.id(questionIndex + "--answerInput-" + current + ANSWER_INPUT_SUFFIX);
             scrollTo(deleteIcon);
             jsClick(deleteIcon);
             new WebDriverWait(driver, 30).until(
@@ -588,7 +598,7 @@ public class FormQuestionsPage extends BasePage {
         while (current < targetCount) {
             int next = current + 1;
             By addBtn   = By.id(questionIndex + "-addAnswer-btn");
-            By newInput = By.id(questionIndex + "--answerInput-" + next);
+            By newInput = By.id(questionIndex + "--answerInput-" + next + ANSWER_INPUT_SUFFIX);
             scrollTo(addBtn);
             new WebDriverWait(driver, 30).until(
                 ExpectedConditions.visibilityOfElementLocated(addBtn));
@@ -607,13 +617,13 @@ public class FormQuestionsPage extends BasePage {
     @Step("Enter answer text at index {answerIndex} for question {questionIndex}")
     public FormQuestionsPage enterAnswerText(int questionIndex, int answerIndex, String text) {
         By addBtn   = By.id(questionIndex + "-addAnswer-btn");
-        By inputLoc = By.id(questionIndex + "--answerInput-" + answerIndex);
+        By inputLoc = By.id(questionIndex + "--answerInput-" + answerIndex + ANSWER_INPUT_SUFFIX);
 
         WebElement addBtnEl = new WebDriverWait(driver, 30).until(
             ExpectedConditions.visibilityOfElementLocated(addBtn));
         scrollToCenter(addBtnEl);
         new WebDriverWait(driver, 30).until(d ->
-            !d.findElements(By.cssSelector("[id^='" + questionIndex + "--answerInput-']")).isEmpty());
+            !d.findElements(By.cssSelector("[id^='" + questionIndex + "--answerInput-'][id$='" + ANSWER_INPUT_SUFFIX + "']")).isEmpty());
         try { Thread.sleep(1500); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
 
         while (countAnswerOptions(questionIndex) < answerIndex) {
@@ -682,7 +692,7 @@ public class FormQuestionsPage extends BasePage {
         boolean foundEmpty = false;
         int total = countAnswerOptions(questionIndex);
         for (int i = total; i >= 1; i--) {
-            List<WebElement> els = driver.findElements(By.id(questionIndex + "--answerInput-" + i));
+            List<WebElement> els = driver.findElements(By.id(questionIndex + "--answerInput-" + i + ANSWER_INPUT_SUFFIX));
             if (els.isEmpty()) continue;
             String val = els.get(0).getAttribute("value");
             if (val == null || val.trim().isEmpty()) {
@@ -791,14 +801,22 @@ public class FormQuestionsPage extends BasePage {
     // blurActiveElement() is a belt-and-suspenders fallback if the native click is intercepted.
     @Step("Click section title to validate all inputs, then wait")
     public FormQuestionsPage validateAllInputs() {
+        clickSectionTitleToCommit();
+        // Give Bubble.io 3 s to run its DB validation pass before proceeding.
+        try { Thread.sleep(3000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        return this;
+    }
+
+    // Native-clicks the section title so focus LEAVES the active field, firing its blur event so
+    // Bubble.io runs the reactive validation and commits the question's saved state. A JS click does
+    // NOT change document.activeElement or fire blur, so this MUST be a real click;
+    // blurActiveElement() is a belt-and-suspenders fallback if the native click is intercepted.
+    private void clickSectionTitleToCommit() {
         try {
             scrollTo(sectionTitle);
             click(sectionTitle);   // native click → moves focus off the field → fires blur → validates
         } catch (Exception ignored) {}
         blurActiveElement();
-        // Give Bubble.io 3 s to run its DB validation pass before proceeding.
-        try { Thread.sleep(3000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
-        return this;
     }
 
     // Reloads the Form Questions editor once — after all questions are set up and BEFORE opening the

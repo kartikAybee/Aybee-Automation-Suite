@@ -7,6 +7,7 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.FluentWait;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import com.aybee.utils.ScreenshotSoftAssert;
 import org.testng.asserts.SoftAssert;
 
 import java.util.List;
@@ -232,7 +233,7 @@ public class NotInterestedQuestionsPage extends BasePage {
     // default questions were stripped), then is redirected back to the Form Questions editor.
     @Step("Answer the split-test questions and verify redirect to the Shop Setup page (owner)")
     public void answerNotInterestedQuestions() {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         answerSplitTests(sa);
         try {
             new WebDriverWait(driver, 45)
@@ -251,7 +252,7 @@ public class NotInterestedQuestionsPage extends BasePage {
     // a differing terminal screen doesn't hard-fail the guest run.
     @Step("Answer the split-test questions as a guest and verify the journey completes")
     public void answerSplitTestQuestionsAsGuest() {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         answerSplitTests(sa);
         try {
             new WebDriverWait(driver, 45).until(ExpectedConditions.or(

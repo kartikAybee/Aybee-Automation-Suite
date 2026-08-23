@@ -33,6 +33,12 @@ public class FormQuestionsPage extends BasePage {
     public static final int DEFAULT_QUESTION_COUNT = HAS_DEFAULT_QUESTIONS ? 2 : 0;
     public static final int FIRST_QUESTION_INDEX = DEFAULT_QUESTION_COUNT + 1;
 
+    // Answer-option input ids now carry a trailing section suffix — full format is
+    // "{q}--answerInput-{k}-Post-Shop" (numbers/rest unchanged, only this suffix is new). Applied to
+    // EVERY answerInput id usage: exact locators append it, and the [id^=...] detection selectors
+    // additionally require [id$='<suffix>']. Other element ids (icons, dropdowns) are unchanged.
+    public static final String ANSWER_INPUT_SUFFIX = "-Post-Shop";
+
     private final By addQuestionButton    = By.id("newproject_formquestions_addquestion_button");
     private final By addManuallyButton    = By.id("add-manually-btn");
     private final By previewJourneyButton = By.id("newproject_formquestions_previewjourney_button");
@@ -102,6 +108,21 @@ public class FormQuestionsPage extends BasePage {
         return this;
     }
 
+    // Native-clicks the section title so focus LEAVES the active field, forcing Bubble.io to fire
+    // the field's blur event and commit its reactive save. A JS click won't change
+    // document.activeElement, so a real click() is required; blurActiveElement() is the fallback.
+    // Guarded by a presence check so it's a fast no-op when this experiment type has no such title.
+    private void clickSectionTitleToCommit() {
+        try {
+            By titleLocator = By.id("experiment-questions-title");
+            if (!driver.findElements(titleLocator).isEmpty()) {
+                scrollTo(titleLocator);
+                click(titleLocator);
+            }
+        } catch (Exception ignored) {}
+        blurActiveElement();
+    }
+
     private void openPreviewChooserAndSelectDesktop() {
         scrollTo(previewJourneyButton);
         jsClick(previewJourneyButton);
@@ -140,16 +161,8 @@ public class FormQuestionsPage extends BasePage {
         try { Thread.sleep(2000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
         String mainWindow = driver.getWindowHandle();
         // Native click on the section title so focus leaves the last field before previewing —
-        // Bubble only validates a field once it is blurred (a JS click won't fire blur). Guarded by a
-        // presence check so it's a fast no-op if absent; blurActiveElement() is a fallback.
-        try {
-            By titleLocator = By.id("experiment-questions-title");
-            if (!driver.findElements(titleLocator).isEmpty()) {
-                scrollTo(titleLocator);
-                click(titleLocator);
-            }
-        } catch (Exception ignored) {}
-        blurActiveElement();
+        // Bubble only validates a field once it is blurred (a JS click won't fire blur).
+        clickSectionTitleToCommit();
         // Wait for Bubble's reactive validation pass to complete after blurring the field, before
         // opening the preview — mirrors the questionnaire suite's validate-then-preview sequence.
         try { Thread.sleep(3000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
@@ -312,6 +325,9 @@ public class FormQuestionsPage extends BasePage {
         WebElement input = scrollTo(By.id(index + "-questionInput"));
         input.clear();
         input.sendKeys(text);
+        // Commit the freshly-typed text now (blur via the section title) so Bubble persists the
+        // reactive save immediately, rather than deferring the whole validation pass to preview time.
+        clickSectionTitleToCommit();
         return this;
     }
 
@@ -457,7 +473,7 @@ public class FormQuestionsPage extends BasePage {
             ExpectedConditions.visibilityOfElementLocated(By.id(index + "-toggle-group")));
         scrollToCenter(card);
         new WebDriverWait(driver, 60).until(d ->
-            d.findElements(By.cssSelector("[id^='" + index + "--answerInput-']")).size() >= expectedCount);
+            d.findElements(By.cssSelector("[id^='" + index + "--answerInput-'][id$='" + ANSWER_INPUT_SUFFIX + "']")).size() >= expectedCount);
         // Brief pause for Bubble.io to finish rendering option controls (delete, randomize icons).
         try { Thread.sleep(1500); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
         return this;
@@ -467,13 +483,13 @@ public class FormQuestionsPage extends BasePage {
 
     private int countAnswerOptions(int questionIndex) {
         return driver.findElements(
-            By.cssSelector("[id^='" + questionIndex + "--answerInput-']")).size();
+            By.cssSelector("[id^='" + questionIndex + "--answerInput-'][id$='" + ANSWER_INPUT_SUFFIX + "']")).size();
     }
 
     @Step("Wait for answer options to appear for question {questionIndex}")
     public FormQuestionsPage waitForAnswerOptions(int questionIndex) {
         new WebDriverWait(driver, 30).until(d ->
-            !d.findElements(By.cssSelector("[id^='" + questionIndex + "--answerInput-']")).isEmpty());
+            !d.findElements(By.cssSelector("[id^='" + questionIndex + "--answerInput-'][id$='" + ANSWER_INPUT_SUFFIX + "']")).isEmpty());
         return this;
     }
 
@@ -484,7 +500,7 @@ public class FormQuestionsPage extends BasePage {
     public FormQuestionsPage waitForAnswerOptionCount(int questionIndex, int expectedCount) {
         new WebDriverWait(driver, 30).until(d ->
             d.findElements(
-                By.cssSelector("[id^='" + questionIndex + "--answerInput-']")).size() >= expectedCount);
+                By.cssSelector("[id^='" + questionIndex + "--answerInput-'][id$='" + ANSWER_INPUT_SUFFIX + "']")).size() >= expectedCount);
         return this;
     }
 
@@ -500,7 +516,7 @@ public class FormQuestionsPage extends BasePage {
         int current = countAnswerOptions(questionIndex);
         while (current > targetCount) {
             By deleteIcon   = By.id(questionIndex + "-deleteIcon-" + current);
-            By deletedInput = By.id(questionIndex + "--answerInput-" + current);
+            By deletedInput = By.id(questionIndex + "--answerInput-" + current + ANSWER_INPUT_SUFFIX);
             scrollTo(deleteIcon);
             jsClick(deleteIcon);
             new WebDriverWait(driver, 30).until(
@@ -510,7 +526,7 @@ public class FormQuestionsPage extends BasePage {
         while (current < targetCount) {
             int next = current + 1;
             By addBtn  = By.id(questionIndex + "-addAnswer-btn");
-            By newInput = By.id(questionIndex + "--answerInput-" + next);
+            By newInput = By.id(questionIndex + "--answerInput-" + next + ANSWER_INPUT_SUFFIX);
             scrollTo(addBtn);
             // Wait for the button to be visible — Bubble.io may still be rendering the
             // previous option when we arrive here.
@@ -535,7 +551,7 @@ public class FormQuestionsPage extends BasePage {
     @Step("Enter answer text at index {answerIndex} for question {questionIndex}")
     public FormQuestionsPage enterAnswerText(int questionIndex, int answerIndex, String text) {
         By addBtn   = By.id(questionIndex + "-addAnswer-btn");
-        By inputLoc = By.id(questionIndex + "--answerInput-" + answerIndex);
+        By inputLoc = By.id(questionIndex + "--answerInput-" + answerIndex + ANSWER_INPUT_SUFFIX);
 
         // Scroll the card into view first, then wait for the add-answer button to be
         // visible — after selectQuestionType / selectShowToParticipants Bubble.io
@@ -551,7 +567,7 @@ public class FormQuestionsPage extends BasePage {
         // first enterAnswerText arrives (unlike limited-choice which went through
         // ensureAnswerOptionCount first and implicitly got this stabilisation).
         new WebDriverWait(driver, 30).until(d ->
-            !d.findElements(By.cssSelector("[id^='" + questionIndex + "--answerInput-']")).isEmpty());
+            !d.findElements(By.cssSelector("[id^='" + questionIndex + "--answerInput-'][id$='" + ANSWER_INPUT_SUFFIX + "']")).isEmpty());
         // Brief pause for Bubble.io to finish any reactive cascade after the type change.
         try { Thread.sleep(1500); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
 
@@ -810,7 +826,7 @@ public class FormQuestionsPage extends BasePage {
         boolean foundEmpty = false;
         int total = countAnswerOptions(questionIndex);
         for (int i = total; i >= 1; i--) {
-            List<WebElement> els = driver.findElements(By.id(questionIndex + "--answerInput-" + i));
+            List<WebElement> els = driver.findElements(By.id(questionIndex + "--answerInput-" + i + ANSWER_INPUT_SUFFIX));
             if (els.isEmpty()) continue;
             String val = els.get(0).getAttribute("value");
             if (val == null || val.trim().isEmpty()) {
@@ -885,7 +901,7 @@ public class FormQuestionsPage extends BasePage {
         expandIfCollapsed(questionIndex);
 
         By addBtn      = By.id(questionIndex + "-addAnswer-btn");
-        By firstAnswer = By.id(questionIndex + "--answerInput-1");
+        By firstAnswer = By.id(questionIndex + "--answerInput-1" + ANSWER_INPUT_SUFFIX);
 
         sleep2s();
         WebElement addBtnEl = scrollTo(addBtn);
@@ -980,16 +996,8 @@ public class FormQuestionsPage extends BasePage {
         }
         // Native click on the section title so focus actually LEAVES the last field — Bubble only
         // validates a field once it is blurred, and a JS click does not change document.activeElement
-        // or fire the field's blur event. Guarded by a presence check so it's a fast no-op if this
-        // experiment type has no such title element; blurActiveElement() is a fallback.
-        try {
-            By titleLocator = By.id("experiment-questions-title");
-            if (!driver.findElements(titleLocator).isEmpty()) {
-                scrollTo(titleLocator);
-                click(titleLocator);
-            }
-        } catch (Exception ignored) {}
-        blurActiveElement();
+        // or fire the field's blur event.
+        clickSectionTitleToCommit();
         try { Thread.sleep(3000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
 
         // Reload the editor (fields committed above) so products load fully before preview — PDP precaution.

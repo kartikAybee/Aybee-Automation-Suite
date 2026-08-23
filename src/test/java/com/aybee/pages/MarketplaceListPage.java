@@ -7,6 +7,7 @@ import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import com.aybee.utils.ScreenshotSoftAssert;
 import org.testng.asserts.SoftAssert;
 
 import java.util.List;
@@ -41,7 +42,7 @@ public class MarketplaceListPage extends BasePage {
     // An empty suffix indicates a ghost product from an incomplete shop setup save.
     @Step("Assert no marketplace products have an empty product name")
     public MarketplaceListPage assertNoEmptyProductIds() {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         List<WebElement> buttons = driver.findElements(
             By.cssSelector("[id^='select-item-overview-organic-']"));
         for (WebElement btn : buttons) {
@@ -122,7 +123,7 @@ public class MarketplaceListPage extends BasePage {
         }
         String fullName = btn.getAttribute("id").replace("select-item-overview-organic-", "");
 
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
 
         softAssertField(sa, "Image src", snap.imageSrc,
             imgSrcFromContainer(fullName + "-product-image"));

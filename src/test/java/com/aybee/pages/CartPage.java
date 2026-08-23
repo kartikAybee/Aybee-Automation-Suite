@@ -5,6 +5,7 @@ import io.qameta.allure.Step;
 import org.openqa.selenium.By;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import com.aybee.utils.ScreenshotSoftAssert;
 import org.testng.asserts.SoftAssert;
 
 public class CartPage extends BasePage {
@@ -27,7 +28,7 @@ public class CartPage extends BasePage {
 
     @Step("Assert cart is empty")
     public CartPage assertEmptyCart() {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         try {
             new WebDriverWait(driver, 30).until(
                 ExpectedConditions.visibilityOfElementLocated(emptyCartText));
@@ -60,7 +61,7 @@ public class CartPage extends BasePage {
             throw e;
         } catch (Exception ignored) {}
 
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         assertCartImage(sa, snap.imageSrc);
         assertCartQuantity(sa);
         assertCartPrices(sa, snap.price);

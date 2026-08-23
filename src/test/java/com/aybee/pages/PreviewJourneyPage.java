@@ -8,6 +8,7 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.FluentWait;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import com.aybee.utils.ScreenshotSoftAssert;
 import org.testng.asserts.SoftAssert;
 
 import java.util.List;
@@ -66,7 +67,7 @@ public class PreviewJourneyPage extends BasePage {
 
     @Step("Answer demographic questions Q1–Q9")
     public PreviewJourneyPage answerDemographicQuestions() {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         answerDemographicQuestion("Male", sa);
         answerDemographicQuestion("25 to 34", sa);
         answerDemographicQuestion("Full-Time Employee", sa);
@@ -81,7 +82,7 @@ public class PreviewJourneyPage extends BasePage {
 
     @Step("Answer demographic questions Q3–Q8 (starting from Full-Time Employee)")
     public PreviewJourneyPage answerDemographicQuestionsFromQ3() {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         answerDemographicQuestion("Full-Time Employee", sa);
         answerDemographicQuestion("Single", sa);
         answerDemographicQuestion("Homeowner", sa);
@@ -96,7 +97,7 @@ public class PreviewJourneyPage extends BasePage {
     // skips the remaining 6 demographic questions for authenticated users.
     @Step("Answer demographic questions for logged-in user (gender + age only)")
     public PreviewJourneyPage answerDemographicQuestionsLoggedIn() {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         answerDemographicQuestion("Male", sa);
         answerDemographicQuestion("25 to 34", sa);
         sa.assertAll();

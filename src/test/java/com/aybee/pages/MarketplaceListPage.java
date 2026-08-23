@@ -174,22 +174,54 @@ public class MarketplaceListPage extends BasePage {
     // Scenario A is tried first; whichever is present in the DOM is the active assignment.
     @Step("Select our product by scenario name (A or B whichever is visible)")
     public void selectOurProductByScenarioNames(String scenarioAName, String scenarioBName) {
-        // Wait for at least one select button to be present — the marketplace re-renders
-        // asynchronously after returning from product detail or cart, and findById without
-        // a wait returns null on an unloaded DOM.
-        new WebDriverWait(driver, 15).until(
-            ExpectedConditions.presenceOfElementLocated(
-                By.cssSelector("[id^='select-item-overview-organic-']")));
-        WebElement btn = findById("select-item-overview-organic-" + scenarioAName);
-        if (btn == null) btn = findById("select-item-overview-organic-" + scenarioBName);
-        if (btn == null) {
+        // Poll until OUR specific product card (scenario A or B) is actually in the DOM. Bubble
+        // injects marketplace cards progressively, so waiting for merely "any" select button and
+        // then looking ours up in the same instant races the render — ours may arrive a beat
+        // later, giving a spurious "select button not found". Keep polling for our card itself.
+        WebElement btn;
+        try {
+            btn = new WebDriverWait(driver, 25).until(d -> {
+                WebElement b = findById("select-item-overview-organic-" + scenarioAName);
+                if (b == null) b = findById("select-item-overview-organic-" + scenarioBName);
+                return b;
+            });
+        } catch (Exception timeout) {
             throw new RuntimeException(
-                "Our product select button not found. Scenario A: ["
-                + scenarioAName + "] Scenario B: [" + scenarioBName + "]");
+                "Our product select button not found after waiting. Scenario A: ["
+                + scenarioAName + "] Scenario B: [" + scenarioBName + "]", timeout);
         }
         String name = btn.getAttribute("id").replace("select-item-overview-organic-", "");
-        scrollToCenter(btn);
-        btn.click();
+
+        // Bubble stacks a transparent overlay on top of the product card and binds the
+        // select-workflow to that overlay group (a sibling of the card, not an ancestor) — so
+        // clicking the card never reaches the handler and a native click is intercepted. Rather
+        // than target Bubble's generated class/id names (they regenerate on every redeploy),
+        // click whatever element is on top at the card's centre — exactly what a real user click
+        // hits — so the event bubbles through whichever overlay owns the workflow. The only
+        // fixed anchor is the intentional select-item-overview-organic-{name} wrapper id.
+        // NOTE: scroll and click MUST be separate executeScript calls. Fusing them means the
+        // rect is read in the same synchronous frame as scrollIntoView, before the scroll has
+        // settled, so elementFromPoint reads stale coordinates and misses the card. Scrolling in
+        // its own call lets layout settle before we compute the centre point. (This is exactly
+        // the sequencing the diagnostic run used when selection worked.)
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        js.executeScript("arguments[0].scrollIntoView({block:'center'});", btn);
+        js.executeScript(
+            "var w=arguments[0];" +
+            "var r=w.getBoundingClientRect();" +
+            "var el=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);" +
+            "(el||w.firstElementChild).click();", btn);
+
+        // Fail loudly if a future layout change makes the centre-click miss the workflow:
+        // Confirm-choice-CTA appears only once a product is actually selected (stable id).
+        try {
+            new WebDriverWait(driver, 10).until(
+                ExpectedConditions.presenceOfElementLocated(By.id("Confirm-choice-CTA")));
+        } catch (Exception notSelected) {
+            throw new RuntimeException(
+                "Clicked our product but it never registered as selected (Confirm-choice-CTA "
+                + "never appeared): " + name, notSelected);
+        }
         System.out.println("[Marketplace] Selected our product: " + name);
     }
 

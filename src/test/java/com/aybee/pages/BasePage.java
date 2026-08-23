@@ -66,6 +66,18 @@ public abstract class BasePage {
         return waitForAnyLandmarkElseReload(java.util.Collections.singletonList(landmark), timeoutSecs, maxReloads);
     }
 
+    // Captures the CURRENT page as a screenshot and attaches it to the Allure report immediately. Use
+    // this at the exact moment a check fails (before the flow advances) so the attachment shows the
+    // real culprit page, not the later teardown screenshot.
+    protected void attachScreenshot(String name) {
+        try {
+            byte[] png = ((org.openqa.selenium.TakesScreenshot) driver)
+                .getScreenshotAs(org.openqa.selenium.OutputType.BYTES);
+            io.qameta.allure.Allure.addAttachment(name, new java.io.ByteArrayInputStream(png));
+            System.out.println("[Screenshot] Captured: " + name);
+        } catch (Exception ignored) {}
+    }
+
     // Two-phase wait: (1) toast-animate-in appears → confirms a toast is live;
     // (2) poll toast-message for text → handles Bubble.io's async text population.
     public String getNotificationText() {

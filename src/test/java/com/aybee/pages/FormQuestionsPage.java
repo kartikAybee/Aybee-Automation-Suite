@@ -359,45 +359,49 @@ public class FormQuestionsPage extends BasePage {
     @Step("Select product source '{value}' for split-test question {index}")
     public FormQuestionsPage selectProductSource(int index, String value) {
         By locator = By.id(index + "-product-select-dropdown");
-        WebElement select = new WebDriverWait(driver, 30).until(
-            ExpectedConditions.visibilityOfElementLocated(locator));
-        scrollToCenter(select);
-        new WebDriverWait(driver, 30).until(ExpectedConditions.elementToBeClickable(locator));
-
-        // CRITICAL: wait for the target OPTION to actually exist before setting the value. Bubble
-        // populates a dropdown's <option>s asynchronously, and assigning select.value to an option
-        // that isn't present yet silently no-ops (the value stays empty). This is why later split-test
-        // questions (2,3,4) didn't take while Q1 did — their options simply weren't loaded yet.
-        new WebDriverWait(driver, 30).until(d -> {
+        // No expand/toggle here — the dropdown just needs to be LOADED and usable. The FIRST split-test
+        // question is the flakiest because this dropdown and its <option>s load for the very first time
+        // right after the type is set, so each round waits for the element to be present/clickable AND
+        // for the target option to exist before selecting, and re-attempts if it lags or doesn't stick.
+        for (int round = 1; round <= 3; round++) {
             try {
-                return new Select(d.findElement(locator)).getOptions().stream().anyMatch(o -> {
-                    String v = o.getAttribute("value");
-                    return v != null && v.contains(value);
+                WebElement select = new WebDriverWait(driver, 20).until(
+                    ExpectedConditions.visibilityOfElementLocated(locator));
+                scrollToCenter(select);
+                new WebDriverWait(driver, 20).until(ExpectedConditions.elementToBeClickable(locator));
+                // Wait for the target OPTION to actually exist.
+                new WebDriverWait(driver, 20).until(d -> {
+                    try {
+                        return new Select(d.findElement(locator)).getOptions().stream().anyMatch(o -> {
+                            String v = o.getAttribute("value");
+                            return v != null && v.contains(value);
+                        });
+                    } catch (Exception e) { return false; }
                 });
-            } catch (Exception e) { return false; }
-        });
-
-        // Inject + verify, retrying once (Bubble may reset the value once before committing state).
-        for (int attempt = 1; attempt <= 2; attempt++) {
-            WebElement el = driver.findElement(locator);
-            ((JavascriptExecutor) driver).executeScript(
-                "arguments[0].value = arguments[1];" +
-                "arguments[0].dispatchEvent(new Event('change', {bubbles: true}));",
-                el, "\"" + value + "\"");
-            try {
+                // Inject + verify it stuck.
+                WebElement el = driver.findElement(locator);
+                ((JavascriptExecutor) driver).executeScript(
+                    "arguments[0].value = arguments[1];" +
+                    "arguments[0].dispatchEvent(new Event('change', {bubbles: true}));",
+                    el, "\"" + value + "\"");
                 new WebDriverWait(driver, 8).until(d -> {
                     String v = d.findElement(locator).getAttribute("value");
                     return v != null && v.contains(value);
                 });
+                System.out.println("[FormQuestions] Q" + index + " product-source set to '"
+                    + value + "' (round " + round + ")");
                 return this;
             } catch (Exception e) {
                 System.out.println("[FormQuestions] product-source for Q" + index
-                    + " didn't stick on attempt " + attempt + " — retrying");
+                    + " didn't take on round " + round + " — re-checking and retrying");
+                try { Thread.sleep(1000); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
             }
         }
-        System.out.println("[FormQuestions] WARNING: product-source for Q" + index
-            + " could not be set to '" + value + "'");
-        return this;
+        // Hard-fail instead of warning: a silently-unset source poisons the What-to-Display option read
+        // that immediately follows for the first question.
+        throw new org.openqa.selenium.TimeoutException(
+            "Could not set product-source '" + value + "' for Q" + index
+            + " after 3 rounds (dropdown option never loaded / value never stuck)");
     }
 
     // Skip for "just_question" — it is the default selection.

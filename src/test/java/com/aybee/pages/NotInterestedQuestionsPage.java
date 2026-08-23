@@ -53,7 +53,7 @@ public class NotInterestedQuestionsPage extends BasePage {
         By.xpath("//div[@class=\"bubble-element Group cpkaPt bubble-r-container flex column\"]"); // full_product_page
     private static final By MAIN_PICTURE      = By.id("main_picture");                 // primary_image
     private static final By IMAGE_GALLERY_HERO =
-        By.xpath("//div[@class=\"bubble-element Group cnnpaI2 bubble-r-container flex column\"]"); // image_gallery
+        By.id("group-answer-outer"); // image_gallery
     private static final By A_PLUS_CONTENT     = By.id("img_multi_desc");              // a__content__section_2_
 
     // After the split-test questions are answered, the logged-in (owner) journey redirects to the Shop
@@ -108,15 +108,18 @@ public class NotInterestedQuestionsPage extends BasePage {
         System.out.println("[NotInterested] Expecting " + expected + " split-test question(s) to answer "
             + "(dynamic — one per What-to-Display option set up): " + opts);
         int answered = 0;
-        for (String opt : opts) {
+        for (int i = 0; i < opts.size(); i++) {
+            int questionNum = i + 1;               // 1-based split-test question number
+            String opt = opts.get(i);
             SplitDisplay split = SplitDisplay.fromLabel(opt);
             if (split != null) {
-                answerSplitQuestion(split, sa);
+                answerSplitQuestion(split, sa, questionNum);
             } else {
                 // Unknown What-to-Display value — no content locator to verify, so just answer it to
                 // advance the journey (wait for split-question-title, pick a choice).
-                System.out.println("[NotInterested] No display mapping for '" + opt + "' — answering generically");
-                answerSplitQuestionGeneric(sa);
+                System.out.println("[NotInterested] Q" + questionNum + " no display mapping for '" + opt
+                    + "' — answering generically");
+                answerSplitQuestionGeneric(sa, questionNum);
             }
             answered++;
         }
@@ -125,13 +128,13 @@ public class NotInterestedQuestionsPage extends BasePage {
 
     // Generic split-test answer for an unmapped What-to-Display: wait for the split-question title,
     // then click Scenario A's choice (advances). No per-display content verification.
-    private void answerSplitQuestionGeneric(SoftAssert sa) {
-        if (!checkSplitQuestionTitle("(generic)", sa)) return;
+    private void answerSplitQuestionGeneric(SoftAssert sa, int questionNum) {
+        if (!checkSplitQuestionTitle("(generic)", sa, questionNum)) return;
         String prevTitle = readSplitTitle();
         // The option buttons render slightly after the title — wait for them before verifying/clicking.
         waitForSplitOptionsReady(15);
-        verifySplitOptions("(generic)", sa);
-        clickSplitChoiceAndAwaitAdvance("(generic)", prevTitle, sa);
+        verifySplitOptions("(generic)", sa, questionNum);
+        clickSplitChoiceAndAwaitAdvance("(generic)", prevTitle, sa, questionNum);
     }
 
     // Current split-question-title text (empty string if absent/unreadable).
@@ -165,14 +168,17 @@ public class NotInterestedQuestionsPage extends BasePage {
     // Clicks Scenario A's choice and confirms the journey moved on. NOTE: every split question renders
     // split-test-A/-B, so waiting for split-test-A to disappear is wrong — it reappears on the next
     // question. Instead we detect advance by the split-question TITLE changing, the split title vanishing,
-    // or a terminal screen appearing (Form Questions editor for owners, toggle-sign-in for guests). The
-    // click is NATIVE (not jsClick) because Bubble's "when clicked" workflow ignores synthetic clicks.
-    private void clickSplitChoiceAndAwaitAdvance(String label, String prevTitle, SoftAssert sa) {
+    // or a terminal screen appearing (Shop Setup for owners, toggle-sign-in for guests).
+    // The click is a JS click dispatched directly on the option element — a NATIVE (coordinate) click on
+    // the image-based options (e.g. primary_image) hits the scenario image and opens/zooms it instead of
+    // registering the choice, so the journey never advances.
+    private void clickSplitChoiceAndAwaitAdvance(String label, String prevTitle, SoftAssert sa, int questionNum) {
+        String q = "Q" + questionNum + " '" + label + "'";
         try {
             new WebDriverWait(driver, 15).until(d -> visibleSplitOption(SPLIT_OPTION_A) != null);
             WebElement choice = visibleSplitOption(SPLIT_OPTION_A);
             scrollToCenter(choice);
-            choice.click(); // native click — required for Bubble to fire the option's workflow
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", choice);
             boolean advanced = new WebDriverWait(driver, 20).until(d -> {
                 if (isDisplayedNow(d, SHOP_SETUP_REDIRECT)) return true;            // owner terminal (shop setup)
                 if (isDisplayedNow(d, By.id("toggle-sign-in"))) return true;        // guest terminal
@@ -182,9 +188,10 @@ public class NotInterestedQuestionsPage extends BasePage {
                 now = now == null ? "" : now.trim();
                 return !now.isEmpty() && !now.equals(prevTitle);                    // moved to next question
             });
-            System.out.println("[NotInterested] '" + label + "' answered (split-test-A) — advanced (was: '" + prevTitle + "')");
+            System.out.println("[NotInterested] " + q + " answered (split-test-A) — advanced (was: '" + prevTitle + "')");
         } catch (Exception e) {
-            sa.fail("[NotInterested] Could not answer split '" + label + "' / no advance detected: " + e.getMessage());
+            attachScreenshot("Q" + questionNum + " no advance after answering (" + label + ")");
+            sa.fail("[NotInterested] " + q + " could not answer / no advance detected: " + e.getMessage());
         }
     }
 
@@ -197,24 +204,25 @@ public class NotInterestedQuestionsPage extends BasePage {
 
     // Confirms we're on a split-test question at this step: split-question-title must be present,
     // visible, and non-empty. Logs the title text. Returns false (and soft-fails) if it never shows.
-    private boolean checkSplitQuestionTitle(String label, SoftAssert sa) {
+    private boolean checkSplitQuestionTitle(String label, SoftAssert sa, int questionNum) {
+        String q = "Q" + questionNum + " '" + label + "'";
         // Bubble sometimes doesn't render the split-test question on load — reload and retry (up to 2
         // reloads) until the split-question-title appears before asserting on it.
         if (!waitForLandmarkElseReload(SPLIT_QUESTION_TITLE, 15, 2)) {
-            sa.fail("[NotInterested] split-question-title did not appear for '" + label + "' (even after reloads)");
+            sa.fail("[NotInterested] " + q + " split-question-title did not appear (even after reloads)");
             return false;
         }
         try {
             WebElement title = new WebDriverWait(driver, 30)
                 .until(ExpectedConditions.visibilityOfElementLocated(SPLIT_QUESTION_TITLE));
             String text = title.getText() == null ? "" : title.getText().trim();
-            System.out.println("[NotInterested] Split question (" + label + ") — split-question-title: '" + text + "'");
+            System.out.println("[NotInterested] " + q + " — split-question-title: '" + text + "'");
             if (text.isEmpty()) {
-                sa.fail("[NotInterested] split-question-title present but empty for '" + label + "'");
+                sa.fail("[NotInterested] " + q + " split-question-title present but empty");
             }
             return true;
         } catch (Exception e) {
-            sa.fail("[NotInterested] split-question-title did not appear for '" + label + "' within 30s");
+            sa.fail("[NotInterested] " + q + " split-question-title did not appear within 30s");
             return false;
         }
     }
@@ -259,32 +267,38 @@ public class NotInterestedQuestionsPage extends BasePage {
     // Waits for the split question, verifies its per-type display content is shown twice (once per
     // scenario), then clicks a choice which auto-advances.
     @Step("Answer split-test question showing '{split}' (verify 2 displays, choice auto-advances)")
-    private void answerSplitQuestion(SplitDisplay split, SoftAssert sa) {
+    private void answerSplitQuestion(SplitDisplay split, SoftAssert sa, int questionNum) {
+        String q = "Q" + questionNum + " '" + split.label + "'";
         // Confirm we're on a split-test question (split-question-title present/visible/non-empty).
-        if (!checkSplitQuestionTitle(split.label, sa)) return;
+        if (!checkSplitQuestionTitle(split.label, sa, questionNum)) return;
         String prevTitle = readSplitTitle();
 
         int shown = waitForVisibleWithImageCount(split.display, EXPECTED_FRONTEND_INSTANCES, 30);
         if (shown != EXPECTED_FRONTEND_INSTANCES) {
             logInstances(split.display);
-            sa.fail("[NotInterested] '" + split.label + "' expected " + EXPECTED_FRONTEND_INSTANCES
+            // Screenshot NOW, on this exact question, before we advance — so the attachment shows the
+            // real culprit page rather than the later teardown screenshot of a different question.
+            attachScreenshot("Q" + questionNum + " display mismatch (" + split.label + ") — expected "
+                + EXPECTED_FRONTEND_INSTANCES + ", got " + shown);
+            sa.fail("[NotInterested] " + q + " expected " + EXPECTED_FRONTEND_INSTANCES
                 + " visible product displays (one per scenario), got: " + shown);
         }
 
         // Verify the scenario options shown are EXACTLY the ones we expect (split-test-A/-B) with the
         // No Difference button, and no extras — before choosing.
         waitForSplitOptionsReady(15);
-        verifySplitOptions(split.label, sa);
+        verifySplitOptions(split.label, sa, questionNum);
 
         // Pick a choice — scenario A. (split-test-B / neutral-selection-btn are equally valid.)
-        clickSplitChoiceAndAwaitAdvance(split.label, prevTitle, sa);
+        clickSplitChoiceAndAwaitAdvance(split.label, prevTitle, sa, questionNum);
     }
 
     // Confirms the split-test question shows EXACTLY the expected scenario options (split-test-{letter}
     // for each expected scenario) plus the No Difference button, with NO extras (e.g. a stray
     // split-test-C). Filters to VISIBLE elements (Bubble leaves hidden id copies in the DOM). Soft-fails
     // on any mismatch so the whole set of split questions is still exercised.
-    private void verifySplitOptions(String label, SoftAssert sa) {
+    private void verifySplitOptions(String label, SoftAssert sa, int questionNum) {
+        String q = "Q" + questionNum + " '" + label + "'";
         java.util.Set<String> shown = new java.util.TreeSet<>();
         for (WebElement el : driver.findElements(ANY_SPLIT_OPTION)) {
             try {
@@ -300,9 +314,10 @@ public class NotInterestedQuestionsPage extends BasePage {
         }
         java.util.Set<String> expected = new java.util.TreeSet<>(EXPECTED_SCENARIOS);
         if (shown.equals(expected)) {
-            System.out.println("[NotInterested] '" + label + "' scenario options OK: split-test-" + shown);
+            System.out.println("[NotInterested] " + q + " scenario options OK: split-test-" + shown);
         } else {
-            sa.fail("[NotInterested] '" + label + "' scenario options mismatch — expected split-test-"
+            attachScreenshot("Q" + questionNum + " scenario options mismatch (" + label + ")");
+            sa.fail("[NotInterested] " + q + " scenario options mismatch — expected split-test-"
                 + expected + " only, but shown split-test-" + shown);
         }
         boolean noDiff = false;
@@ -314,7 +329,7 @@ public class NotInterestedQuestionsPage extends BasePage {
             }
         } catch (Exception ignored) {}
         if (!noDiff) {
-            sa.fail("[NotInterested] '" + label + "' No Difference button (neutral-selection-btn) not shown");
+            sa.fail("[NotInterested] " + q + " No Difference button (neutral-selection-btn) not shown");
         }
     }
 

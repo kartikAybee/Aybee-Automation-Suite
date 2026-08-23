@@ -194,6 +194,7 @@ public class ProductDetailPage extends BasePage {
         if (!enabledAfter) {
             sa.fail("[ProductDetail] product-buy-now did not become enabled ('cursor: pointer') after moving the slider");
         }
+        wait.until(ExpectedConditions.elementToBeClickable(submitRatingButton));
         jsClick(submitRatingButton);
 
         // Slide-then-continue: the slider only proceeds once its Continue is clicked. If the question

@@ -1058,10 +1058,10 @@ public class FormQuestionsPage extends BasePage {
     // gender + age demographics only (not all 8); waits for the first answer option.
     @Step("Navigate to preview URL as logged-in user (gender + age demographics)")
     public void navigateAsLoggedInUser(String previewUrl) {
+        driver.get("about:blank");
         driver.get(previewUrl);
-        new WebDriverWait(driver, 30).until(
-            ExpectedConditions.presenceOfElementLocated(
-                By.cssSelector("[id^='answer-Option-']")));
+        // Wait for the first answer option; reload past Bubble's occasional blank/infinite first-load.
+        waitForLandmarkElseReload(By.cssSelector("[id^='answer-Option-']"), 20, 2);
     }
 
     // Clears the logged-in session (cookies + localStorage + sessionStorage) and navigates
@@ -1073,8 +1073,9 @@ public class FormQuestionsPage extends BasePage {
         driver.manage().deleteAllCookies();
         ((JavascriptExecutor) driver).executeScript(
             "window.localStorage.clear(); window.sessionStorage.clear();");
+        driver.get("about:blank");
         driver.get(previewUrl);
-        new WebDriverWait(driver, 30).until(
-            ExpectedConditions.visibilityOfElementLocated(By.id("continue-button")));
+        // Reload past Bubble's occasional blank/infinite first-load until the page is ready.
+        waitForLandmarkElseReload(By.id("continue-button"), 20, 2);
     }
 }

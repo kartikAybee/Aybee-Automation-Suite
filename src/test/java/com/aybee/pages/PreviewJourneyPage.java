@@ -175,12 +175,11 @@ public class PreviewJourneyPage extends BasePage {
     @Step("Clear session and navigate to preview URL as guest")
     public void navigateAsGuest(String previewUrl) {
         clearSession();
+        driver.get("about:blank");
         driver.get(previewUrl);
-        // Wait for the first answer option to appear — continue-button only renders AFTER
-        // an option is selected, so it cannot serve as a page-ready indicator here.
-        new WebDriverWait(driver, 30).until(
-            ExpectedConditions.presenceOfElementLocated(
-                By.cssSelector("[id^='answer-Option-']")));
+        // Wait for the first answer option to appear (continue-button only renders AFTER an option is
+        // selected). Reload past Bubble's occasional blank/infinite first-load.
+        waitForLandmarkElseReload(By.cssSelector("[id^='answer-Option-']"), 20, 2);
     }
 
     // After the first not-interested redirects to shop setup, the stored preview URL is

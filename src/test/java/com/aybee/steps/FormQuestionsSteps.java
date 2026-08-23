@@ -78,7 +78,8 @@ public class FormQuestionsSteps {
     public void iAddLongTextQuestion() {
         page.addNewQuestion(q(0))
             .enterQuestionText(q(0), Q1_TEXT)
-            .selectQuestionType(q(0), "long_text");
+            .selectQuestionType(q(0), "long_text")
+            .commitFieldsViaTitle();
         // What to display defaults to Just Question — no selection needed.
     }
 
@@ -99,7 +100,8 @@ public class FormQuestionsSteps {
             .clickExclusive(q(1), 4)
             .enableRandomizeToggle(q(1))
             .disableRandomizeForAnswer(q(1), 3)
-            .disableRandomizeForAnswer(q(1), 4);
+            .disableRandomizeForAnswer(q(1), 4)
+            .commitFieldsViaTitle();
         // Store the two selectable (non-exclusive) options the guest will pick — the preview
         // retrigger may later update index 0 in GlobalTestState if it appends a letter to it.
         GlobalTestState.q2SelectOptions = Arrays.asList(Q2_OPT1, Q2_OPT2);
@@ -130,7 +132,8 @@ public class FormQuestionsSteps {
             .selectFilterQuestion(1, Q2_PARTIAL)
             .selectFilterAnswerOption(1, Q2_OPT1)
             .selectFilterAnswerOption(1, Q2_OPT2)
-            .applyFilters();
+            .applyFilters()
+            .commitFieldsViaTitle();
         // Store the single option the guest will pick for Q3.
         GlobalTestState.q3SelectOption = Q3_OPT1;
     }
@@ -167,7 +170,8 @@ public class FormQuestionsSteps {
             .clickAddFilterQuestion(2)
             .selectFilterQuestion(2, Q3_PARTIAL)
             .selectFilterAnswerOption(2, Q3_OPT1)
-            .applyFilters();
+            .applyFilters()
+            .commitFieldsViaTitle();
         // Store the two non-exclusive options the guest will pick for Q4 (multiple choice) — the
         // retrigger targets this question first, so index 0 here is the most likely to be updated.
         GlobalTestState.q4SelectOptions = Arrays.asList(opt1, opt2);
@@ -187,7 +191,8 @@ public class FormQuestionsSteps {
             .clickAddFilterQuestion(1)
             .selectFilterQuestion(1, Q3_PARTIAL)
             .selectFilterAnswerOption(1, Q3_OPT1)
-            .applyFilters();
+            .applyFilters()
+            .commitFieldsViaTitle();
     }
 
     // ── Q6 — Likert Vertical, Just Question ───────────────────────────────────────
@@ -197,7 +202,8 @@ public class FormQuestionsSteps {
             .enterQuestionText(q(5), Q6_TEXT)
             .selectQuestionType(q(5), "likert_scale")
             .selectScaleType(q(5), "vertical")
-            .waitForLikertOptions(q(5), 6);
+            .waitForLikertOptions(q(5), 6)
+            .commitFieldsViaTitle();
     }
 
     // ── Validation + Preview ─────────────────────────────────────────────────────

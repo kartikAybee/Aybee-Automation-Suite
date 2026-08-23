@@ -38,6 +38,12 @@ public class FormQuestionsPage extends BasePage {
     public static final String DISPLAY_JUST_QUESTION   = "just_question";   // default — no selection needed
     public static final String DISPLAY_UPLOADED_ASSETS = "uploaded_image";  // "Uploaded Assets"
 
+    // Answer-option input ids now carry a trailing section suffix — full format is
+    // "{q}--answerInput-{k}-Post-Shop" (the numbers/rest are unchanged, only this suffix is new).
+    // Applied to EVERY answerInput id usage (exact locators AND the [id^=...] detection selectors,
+    // which additionally require [id$='<suffix>']). Other element ids (icons, dropdowns) are unchanged.
+    public static final String ANSWER_INPUT_SUFFIX = "-Post-Shop";
+
     private final By addQuestionButton    = By.id("newproject_formquestions_addquestion_button");
     private final By addManuallyButton    = By.id("add-manually-btn");
     private final By previewJourneyButton = By.id("newproject_formquestions_previewjourney_button");
@@ -309,7 +315,7 @@ public class FormQuestionsPage extends BasePage {
             ExpectedConditions.visibilityOfElementLocated(By.id(index + "-toggle-group")));
         scrollToCenter(card);
         new WebDriverWait(driver, 60).until(d ->
-            d.findElements(By.cssSelector("[id^='" + index + "--answerInput-']")).size() >= expectedCount);
+            d.findElements(By.cssSelector("[id^='" + index + "--answerInput-'][id$='" + ANSWER_INPUT_SUFFIX + "']")).size() >= expectedCount);
         try { Thread.sleep(1500); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
         return this;
     }
@@ -318,13 +324,13 @@ public class FormQuestionsPage extends BasePage {
 
     private int countAnswerOptions(int questionIndex) {
         return driver.findElements(
-            By.cssSelector("[id^='" + questionIndex + "--answerInput-']")).size();
+            By.cssSelector("[id^='" + questionIndex + "--answerInput-'][id$='" + ANSWER_INPUT_SUFFIX + "']")).size();
     }
 
     @Step("Wait for answer options to appear for question {questionIndex}")
     public FormQuestionsPage waitForAnswerOptions(int questionIndex) {
         new WebDriverWait(driver, 30).until(d ->
-            !d.findElements(By.cssSelector("[id^='" + questionIndex + "--answerInput-']")).isEmpty());
+            !d.findElements(By.cssSelector("[id^='" + questionIndex + "--answerInput-'][id$='" + ANSWER_INPUT_SUFFIX + "']")).isEmpty());
         return this;
     }
 
@@ -332,7 +338,7 @@ public class FormQuestionsPage extends BasePage {
     public FormQuestionsPage waitForAnswerOptionCount(int questionIndex, int expectedCount) {
         new WebDriverWait(driver, 30).until(d ->
             d.findElements(
-                By.cssSelector("[id^='" + questionIndex + "--answerInput-']")).size() >= expectedCount);
+                By.cssSelector("[id^='" + questionIndex + "--answerInput-'][id$='" + ANSWER_INPUT_SUFFIX + "']")).size() >= expectedCount);
         return this;
     }
 
@@ -340,46 +346,115 @@ public class FormQuestionsPage extends BasePage {
     @Step("Ensure {targetCount} answer option fields for question {questionIndex}")
     public FormQuestionsPage ensureAnswerOptionCount(int questionIndex, int targetCount) {
         waitForAnswerOptions(questionIndex);
-        try { Thread.sleep(3000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
-        int current = countAnswerOptions(questionIndex);
-        while (current > targetCount) {
-            By deleteIcon   = By.id(questionIndex + "-deleteIcon-" + current);
-            By deletedInput = By.id(questionIndex + "--answerInput-" + current);
+
+        // Limited Choice creates its default answer options ASYNCHRONOUSLY and with a delay — the
+        // count keeps changing for a few seconds after the card renders. Wait for it to STABILISE
+        // before touching anything, otherwise our add/delete clicks race the platform's own option
+        // creation and a specific-index wait (answerInput-N) never resolves.
+        int settled = waitForAnswerOptionCountToStabilise(questionIndex);
+        System.out.println("[LimitedChoice] Q" + questionIndex + " options settled at " + settled
+            + " (target " + targetCount + ")");
+
+        // Delete extras from the highest index down. Re-read the max each pass — indices shift as
+        // Bubble.io re-renders, so never assume count == highest index.
+        int guard = 0;
+        while (countAnswerOptions(questionIndex) > targetCount && guard++ < 20) {
+            int max = highestAnswerOptionIndex(questionIndex);
+            By deleteIcon = By.id(questionIndex + "-deleteIcon-" + max);
+            if (driver.findElements(deleteIcon).isEmpty()) break;
             scrollTo(deleteIcon);
+            int before = countAnswerOptions(questionIndex);
             jsClick(deleteIcon);
-            new WebDriverWait(driver, 30).until(
-                ExpectedConditions.invisibilityOfElementLocated(deletedInput));
-            current = countAnswerOptions(questionIndex);
+            waitForAnswerOptionCountChange(questionIndex, before, 30);
         }
-        while (current < targetCount) {
-            int next = current + 1;
-            By addBtn   = By.id(questionIndex + "-addAnswer-btn");
-            By newInput = By.id(questionIndex + "--answerInput-" + next);
+
+        // Add if short. Wait for the COUNT to grow (index-agnostic) instead of a specific
+        // answerInput-{n} — Bubble.io may auto-create the next option itself, which still satisfies
+        // us. Never throw: if we can't hit the target exactly, enterAnswerText grows slots too.
+        guard = 0;
+        while (countAnswerOptions(questionIndex) < targetCount && guard++ < 20) {
+            By addBtn = By.id(questionIndex + "-addAnswer-btn");
             scrollTo(addBtn);
             new WebDriverWait(driver, 30).until(
                 ExpectedConditions.visibilityOfElementLocated(addBtn));
+            int before = countAnswerOptions(questionIndex);
             jsClick(addBtn);
-            try {
-                new WebDriverWait(driver, 30).until(d -> !d.findElements(newInput).isEmpty());
-            } catch (TimeoutException retry) {
+            if (!waitForAnswerOptionCountChange(questionIndex, before, 15)) {
+                // Bubble.io swallowed the click or is still auto-creating — nudge once more and let
+                // the loop re-evaluate the count on the next pass.
                 jsClick(addBtn);
-                new WebDriverWait(driver, 30).until(d -> !d.findElements(newInput).isEmpty());
+                waitForAnswerOptionCountChange(questionIndex, before, 15);
             }
-            current = countAnswerOptions(questionIndex);
+        }
+
+        int finalCount = countAnswerOptions(questionIndex);
+        if (finalCount != targetCount) {
+            System.out.println("[LimitedChoice] Q" + questionIndex + " ended with " + finalCount
+                + " options (wanted " + targetCount + ") — proceeding; enterAnswerText will reconcile");
         }
         return this;
+    }
+
+    // Polls the answer-option count until it stops changing (stable across 3 consecutive 500ms
+    // polls) or ~10s elapses. Absorbs Limited Choice's delayed async auto-creation. Returns the
+    // settled count.
+    private int waitForAnswerOptionCountToStabilise(int questionIndex) {
+        int last = -1, stable = 0;
+        for (int i = 0; i < 20 && stable < 3; i++) {
+            int c = countAnswerOptions(questionIndex);
+            if (c == last) { stable++; } else { stable = 0; last = c; }
+            try { Thread.sleep(500); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        }
+        return countAnswerOptions(questionIndex);
+    }
+
+    // Highest k for which questionIndex--answerInput-k exists (options can be non-contiguous
+    // mid-render, so scan actual ids rather than trusting count == max index).
+    private int highestAnswerOptionIndex(int questionIndex) {
+        String prefix = questionIndex + "--answerInput-";
+        int max = 0;
+        for (WebElement el : driver.findElements(
+                By.cssSelector("[id^='" + prefix + "'][id$='" + ANSWER_INPUT_SUFFIX + "']"))) {
+            String id = el.getAttribute("id");
+            if (id == null || !id.startsWith(prefix)) continue;
+            // id is "{q}--answerInput-{k}-Post-Shop" — take the {k} between the prefix and the suffix.
+            String rest = id.substring(prefix.length());
+            if (rest.endsWith(ANSWER_INPUT_SUFFIX)) {
+                rest = rest.substring(0, rest.length() - ANSWER_INPUT_SUFFIX.length());
+            }
+            try {
+                int k = Integer.parseInt(rest);
+                if (k > max) max = k;
+            } catch (NumberFormatException ignored) {}
+        }
+        return max;
+    }
+
+    // Waits up to timeoutSecs for the answer-option count to differ from `before`. Returns true if
+    // it changed, false on timeout (no throw) so the caller can decide how to proceed.
+    private boolean waitForAnswerOptionCountChange(int questionIndex, int before, int timeoutSecs) {
+        try {
+            new FluentWait<>(driver)
+                .withTimeout(timeoutSecs, TimeUnit.SECONDS)
+                .pollingEvery(250, TimeUnit.MILLISECONDS)
+                .ignoring(Exception.class)
+                .until(d -> countAnswerOptions(questionIndex) != before);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     @Step("Enter answer text at index {answerIndex} for question {questionIndex}")
     public FormQuestionsPage enterAnswerText(int questionIndex, int answerIndex, String text) {
         By addBtn   = By.id(questionIndex + "-addAnswer-btn");
-        By inputLoc = By.id(questionIndex + "--answerInput-" + answerIndex);
+        By inputLoc = By.id(questionIndex + "--answerInput-" + answerIndex + ANSWER_INPUT_SUFFIX);
 
         WebElement addBtnEl = new WebDriverWait(driver, 30).until(
             ExpectedConditions.visibilityOfElementLocated(addBtn));
         scrollToCenter(addBtnEl);
         new WebDriverWait(driver, 30).until(d ->
-            !d.findElements(By.cssSelector("[id^='" + questionIndex + "--answerInput-']")).isEmpty());
+            !d.findElements(By.cssSelector("[id^='" + questionIndex + "--answerInput-'][id$='" + ANSWER_INPUT_SUFFIX + "']")).isEmpty());
         try { Thread.sleep(1500); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
 
         while (countAnswerOptions(questionIndex) < answerIndex) {
@@ -449,7 +524,7 @@ public class FormQuestionsPage extends BasePage {
         boolean foundEmpty = false;
         int total = countAnswerOptions(questionIndex);
         for (int i = total; i >= 1; i--) {
-            List<WebElement> els = driver.findElements(By.id(questionIndex + "--answerInput-" + i));
+            List<WebElement> els = driver.findElements(By.id(questionIndex + "--answerInput-" + i + ANSWER_INPUT_SUFFIX));
             if (els.isEmpty()) continue;
             String val = els.get(0).getAttribute("value");
             if (val == null || val.trim().isEmpty()) {
@@ -498,16 +573,16 @@ public class FormQuestionsPage extends BasePage {
                     .until(ExpectedConditions.elementToBeClickable(filterByResponseTab)).click();
             }
         } catch (Exception ignored) {}
-        new WebDriverWait(driver, 15).until(
-            ExpectedConditions.elementToBeClickable(addFilterQuestionBtn));
+        // Wait for a LIVE add-filter button (Bubble.io leaves a ghost copy from the previous
+        // filter that By.id/elementToBeClickable would otherwise resolve and time out on).
+        new WebDriverWait(driver, 15).until(d -> findLiveInstance(addFilterQuestionBtn) != null);
         return this;
     }
 
     @Step("Click Add Filter Question and wait for filter question dropdown {expectedFilterIndex}")
     public FormQuestionsPage clickAddFilterQuestion(int expectedFilterIndex) {
-        new WebDriverWait(driver, 30).until(
-            ExpectedConditions.elementToBeClickable(addFilterQuestionBtn));
-        jsClick(addFilterQuestionBtn);
+        // Click the live add-filter button, not the previous filter's lingering ghost instance.
+        clickLiveInstance(addFilterQuestionBtn, 30);
         By dropdownLocator = By.id("dropdown-filter-question-" + expectedFilterIndex);
         new WebDriverWait(driver, 30).until(
             ExpectedConditions.visibilityOfElementLocated(dropdownLocator));
@@ -625,6 +700,16 @@ public class FormQuestionsPage extends BasePage {
         return this;
     }
 
+    // Commits the just-entered question fields immediately: clicks the section title so the last
+    // field blurs and Bubble.io fires its reactive save right away, instead of deferring the whole
+    // validation pass to preview time. Called at the END of each question's setup so preview
+    // handling is faster and more reliable (mirrors the d2c precaution). Chainable.
+    @Step("Commit the current question's fields by clicking the section title")
+    public FormQuestionsPage commitFieldsViaTitle() {
+        clickSectionTitle();
+        return this;
+    }
+
     // Native click on experiment-questions-title (with a direct-blur fallback) — the reusable
     // "click outside the field" action used both before the first preview and on every retry.
     private void clickSectionTitle() {
@@ -653,7 +738,7 @@ public class FormQuestionsPage extends BasePage {
         sleep2s();
         expandIfCollapsed(questionIndex);
 
-        By firstAnswer = By.id(questionIndex + "--answerInput-1");
+        By firstAnswer = By.id(questionIndex + "--answerInput-1" + ANSWER_INPUT_SUFFIX);
         sleep2s();
         WebElement input = scrollTo(firstAnswer);
         sleep2s();

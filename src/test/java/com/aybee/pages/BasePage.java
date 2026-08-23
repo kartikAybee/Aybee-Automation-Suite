@@ -257,6 +257,41 @@ public abstract class BasePage {
         return (result instanceof WebElement) ? (WebElement) result : null;
     }
 
+    // Bubble.io leaves GHOST copies of an element in the DOM after a reactive re-render (e.g. the
+    // filter sidebar's add-question button lingers from a previous filter). By.id then resolves the
+    // stale ghost, which is not interactive, so elementToBeClickable times out. This returns the
+    // LAST match that is actually displayed with a non-zero box — the freshly-rendered live instance
+    // — or null if none qualify. Never throws on a stale match.
+    protected WebElement findLiveInstance(By locator) {
+        WebElement live = null;
+        for (WebElement el : driver.findElements(locator)) {
+            try {
+                if (el.isDisplayed()
+                        && el.getRect().getWidth() > 0
+                        && el.getRect().getHeight() > 0) {
+                    live = el;   // keep the last qualifying one (freshest in DOM order)
+                }
+            } catch (StaleElementReferenceException ignored) {}
+        }
+        return live;
+    }
+
+    // Waits up to timeoutSecs for a live (displayed, non-zero) instance of locator to exist, then
+    // clicks it — native click first, JS-click fallback. Use instead of By.id when Bubble.io ghosts
+    // can shadow the real element. Throws TimeoutException if no live instance appears.
+    protected void clickLiveInstance(By locator, int timeoutSecs) {
+        WebElement live = new WebDriverWait(driver, timeoutSecs)
+            .ignoring(StaleElementReferenceException.class)
+            .until(d -> findLiveInstance(locator));
+        ((JavascriptExecutor) driver).executeScript(
+            "arguments[0].scrollIntoView({behavior:'instant',block:'center'});", live);
+        try {
+            live.click();
+        } catch (Exception e) {
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", live);
+        }
+    }
+
     // Returns the src of the first <img> inside a container element found by id.
     protected String imgSrcFromContainer(String containerId) {
         WebElement container = findById(containerId);

@@ -1,6 +1,7 @@
 package com.aybee.pages;
 
 import com.aybee.context.GlobalTestState;
+import com.aybee.utils.ScreenshotSoftAssert;
 import io.qameta.allure.Step;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
@@ -77,7 +78,7 @@ public class ParticipantFormPage extends BasePage {
     // margin. Verifies each expected question was seen.
     @Step("Answer all questionnaire form questions and verify completion redirect to sign in")
     public void answerAllAndVerifyCompletion() {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         List<String> expected = Arrays.asList(Q1_TITLE, Q2_TITLE, Q3_TITLE, Q4_TITLE, Q5_TITLE, Q6_TITLE);
         java.util.Set<String> seen = new java.util.HashSet<>();
 
@@ -110,7 +111,7 @@ public class ParticipantFormPage extends BasePage {
 
     @Step("Verify the participant journey redirected to the sign-in page on completion")
     public void verifyCompletionRedirect() {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         try {
             new FluentWait<>(driver)
                 .withTimeout(30, TimeUnit.SECONDS)

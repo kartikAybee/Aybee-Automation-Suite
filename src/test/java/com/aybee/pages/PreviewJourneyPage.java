@@ -1,6 +1,7 @@
 package com.aybee.pages;
 
 import com.aybee.utils.ConfigReader;
+import com.aybee.utils.ScreenshotSoftAssert;
 import io.qameta.allure.Step;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
@@ -95,7 +96,7 @@ public class PreviewJourneyPage extends BasePage {
     @Step("Answer demographic questions — gender (Male) and age (25 to 34) only")
     public PreviewJourneyPage answerDemographicsGenderAndAge() {
         lastAnsweredDemographicOption = null;
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         answerDemographicQuestion("Male", sa);
         answerDemographicQuestion("25 to 34", sa);
         sa.assertAll();
@@ -107,7 +108,7 @@ public class PreviewJourneyPage extends BasePage {
     @Step("Answer all 8 guest demographic questions")
     public PreviewJourneyPage answerAllDemographicQuestions() {
         lastAnsweredDemographicOption = null;
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         answerDemographicQuestion("Male", sa);
         answerDemographicQuestion("25 to 34", sa);
         answerDemographicQuestion("Full-Time Employee", sa);

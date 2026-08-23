@@ -918,6 +918,18 @@ public class FormQuestionsPage extends BasePage {
     // Sets incompleteToastSeenOnLastPreview so the step can record a soft failure.
     // Opens the preview: clicks the Preview button, waits for the Desktop/Mobile chooser popup, and
     // selects Desktop (preview-desktop). Validation/error toasts fire AFTER the Desktop selection.
+    // Reloads the Form Questions editor once, right before opening preview, so the backend products
+    // load fully (they can render incompletely in the preview journey on the very first open). Mirrors
+    // the PDP precaution. The caller commits/validates fields BEFORE this reload so nothing is lost.
+    public FormQuestionsPage reloadEditorForProductLoad() {
+        System.out.println("[FormQuestions] Reloading editor before preview so all products load properly");
+        driver.navigate().refresh();
+        new WebDriverWait(driver, 45).until(
+            ExpectedConditions.presenceOfElementLocated(previewJourneyButton));
+        try { Thread.sleep(3000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        return this;
+    }
+
     private void openPreviewChooserAndSelectDesktop() {
         scrollTo(previewJourneyButton);
         jsClick(previewJourneyButton);
@@ -993,6 +1005,9 @@ public class FormQuestionsPage extends BasePage {
         } catch (Exception ignored) {}
         blurActiveElement();
         try { Thread.sleep(3000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+
+        // Reload the editor (fields committed above) so products load fully before preview — PDP precaution.
+        reloadEditorForProductLoad();
 
         openPreviewChooserAndSelectDesktop();
 

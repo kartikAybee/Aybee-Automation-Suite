@@ -240,6 +240,10 @@ public class FormQuestionsPage extends BasePage {
             .getFirstSelectedOption().getText();
         System.out.println("[FormQuestions] A/B test product reference dropdown rendered for Q"
             + index + " — shows: " + shown);
+        // Setup for this question is done — click the section title now so the field blurs and
+        // Bubble.io commits its reactive save immediately, rather than deferring the whole
+        // validation pass to preview time. Makes the later preview handling faster/more reliable.
+        clickSectionTitleToCommit();
         return this;
     }
 
@@ -767,6 +771,20 @@ public class FormQuestionsPage extends BasePage {
         return this;
     }
 
+    // Native-clicks the section title so focus LEAVES the active field, forcing Bubble.io to fire
+    // the field's blur event and commit its reactive save. A JS click won't change
+    // document.activeElement, so a real click() is required; blurActiveElement() is the fallback.
+    private void clickSectionTitleToCommit() {
+        try {
+            By titleLocator = By.id("experiment-questions-title");
+            if (!driver.findElements(titleLocator).isEmpty()) {
+                scrollTo(titleLocator);
+                click(titleLocator);
+            }
+        } catch (Exception ignored) {}
+        blurActiveElement();
+    }
+
     private void openPreviewChooserAndSelectDesktop() {
         scrollTo(previewJourneyButton);
         jsClick(previewJourneyButton);
@@ -828,14 +846,7 @@ public class FormQuestionsPage extends BasePage {
         // Native click on the section title so focus actually LEAVES the last field — Bubble only
         // validates a field once it is blurred, and a JS click does not change document.activeElement
         // or fire the field's blur event. blurActiveElement() is a fallback if the click is intercepted.
-        try {
-            By titleLocator = By.id("experiment-questions-title");
-            if (!driver.findElements(titleLocator).isEmpty()) {
-                scrollTo(titleLocator);
-                click(titleLocator);
-            }
-        } catch (Exception ignored) {}
-        blurActiveElement();
+        clickSectionTitleToCommit();
         waitForValidationComplete();
 
         // Reload the editor (fields committed above) so products load fully before preview — PDP precaution.

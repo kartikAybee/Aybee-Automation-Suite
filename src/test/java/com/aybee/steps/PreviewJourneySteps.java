@@ -6,6 +6,7 @@ import com.aybee.pages.D2CProductListPage;
 import com.aybee.pages.D2CProductPage;
 import com.aybee.pages.PreviewJourneyPage;
 import io.cucumber.java.en.And;
+import com.aybee.utils.ScreenshotSoftAssert;
 import org.testng.asserts.SoftAssert;
 
 import java.util.List;
@@ -18,9 +19,10 @@ public class PreviewJourneySteps {
     private final D2CProductPage         productPage  = new D2CProductPage();
     private final D2CParticipantFormPage formPage     = new D2CParticipantFormPage();
 
-    // Holds the price read from the D2C product list before navigation — used to verify
-    // that the product detail page shows the same price as the list.
-    private String currentProductPriceFromList;
+    // The single source of truth for the expected price — the shop-setup value ($). Used to verify
+    // the product detail page. Never sourced from the list card (which renders €), so currencies
+    // never mix between the stored expected and the page-under-test.
+    private String expectedProductPrice;
 
     public PreviewJourneySteps(ScenarioContext context) {
         this.context = context;
@@ -117,17 +119,13 @@ public class PreviewJourneySteps {
         listPage.answerOpenerQuestion();
     }
 
-    // Reads the list price before clicking so it can be compared to the product page later.
-    // Falls back to the stored setup price if the list price element is not found.
+    // Expected price is always the shop-setup value (single source of truth). We deliberately do
+    // NOT read the list card price — its € symbol would mix currencies with the detail page's $.
     @And("I select our product from the D2C product list and answer the opener question")
     public void iSelectOurProductAndAnswerOpener() {
         String ourName = resolveOurProductName();
-        try {
-            currentProductPriceFromList = listPage.getProductPriceFromList(ourName);
-        } catch (Exception e) {
-            currentProductPriceFromList = resolveOurProductPrice();
-            System.out.println("[D2C] List price not found — using stored setup price: " + currentProductPriceFromList);
-        }
+        expectedProductPrice = resolveOurProductPrice();
+        System.out.println("[D2C] Expected price (shop setup): " + expectedProductPrice);
         listPage.selectProduct(ourName);
         listPage.answerOpenerQuestion();
     }
@@ -144,11 +142,10 @@ public class PreviewJourneySteps {
                 + " | Ours A: [" + context.scenarioAProductName
                 + "] B: [" + context.scenarioBProductName + "]"));
         System.out.println("[D2C] Competitor selected: " + competitorName);
-        try {
-            currentProductPriceFromList = listPage.getProductPriceFromList(competitorName);
-        } catch (Exception e) {
-            System.out.println("[D2C] Competitor list price not found — proceeding without price");
-        }
+        // Competitors are not in shop setup, so there is no single-source expected price to compare;
+        // clear it so the detail-page check skips the competitor price assertion rather than reusing
+        // a stale value from a previous product.
+        expectedProductPrice = null;
         listPage.selectProduct(competitorName);
         listPage.answerOpenerQuestion();
     }
@@ -173,7 +170,7 @@ public class PreviewJourneySteps {
         productPage.waitUntilLoaded();
         String currentName = productPage.getDisplayedProductName();
         productPage.assertProductDataMatchesSelection(
-            currentName, currentProductPriceFromList, context.softAssert);
+            currentName, expectedProductPrice, context.softAssert);
     }
 
     @And("I add the product to the D2C cart")
@@ -215,21 +212,21 @@ public class PreviewJourneySteps {
 
     @And("I answer the D2C form questions for our product and verify Q2 is absent")
     public void iAnswerD2CFormQuestionsOurProduct() {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         formPage.answerFormQuestionsOurProduct(resolveOurProductName(), sa);
         sa.assertAll();
     }
 
     @And("I answer the D2C form questions for competitor product and verify Q2 is shown")
     public void iAnswerD2CFormQuestionsCompetitor() {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         formPage.answerFormQuestionsCompetitor(resolveOurProductName(), sa);
         sa.assertAll();
     }
 
     @And("I verify the guest is redirected to the sign-up page")
     public void iVerifyGuestRedirectedToSignUp() {
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         formPage.verifySignUpRedirect(sa);
         sa.assertAll();
     }

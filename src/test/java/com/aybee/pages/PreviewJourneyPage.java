@@ -8,6 +8,7 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.FluentWait;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import com.aybee.utils.ScreenshotSoftAssert;
 import org.testng.asserts.SoftAssert;
 
 import java.util.Set;
@@ -93,7 +94,7 @@ public class PreviewJourneyPage extends BasePage {
     @Step("Answer demographic questions — gender (Male) and age (25 to 34) only")
     public PreviewJourneyPage answerDemographicsGenderAndAge() {
         lastAnsweredDemographicOption = null;
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         answerDemographicQuestion("Male", sa);
         answerDemographicQuestion("25 to 34", sa);
         sa.assertAll();
@@ -104,7 +105,7 @@ public class PreviewJourneyPage extends BasePage {
     @Step("Answer demographic questions Q1–Q8")
     public PreviewJourneyPage answerAllDemographicQuestions() {
         lastAnsweredDemographicOption = null;
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         answerDemographicQuestion("Male", sa);
         answerDemographicQuestion("25 to 34", sa);
         answerDemographicQuestion("Full-Time Employee", sa);
@@ -122,7 +123,7 @@ public class PreviewJourneyPage extends BasePage {
     @Step("Answer demographic questions Q3–Q8 (starting from Full-Time Employee)")
     public PreviewJourneyPage answerDemographicQuestionsFromQ3() {
         lastAnsweredDemographicOption = null;
-        SoftAssert sa = new SoftAssert();
+        SoftAssert sa = new ScreenshotSoftAssert();
         answerDemographicQuestion("Full-Time Employee", sa);
         answerDemographicQuestion("Single", sa);
         answerDemographicQuestion("Homeowner", sa);
@@ -163,33 +164,59 @@ public class PreviewJourneyPage extends BasePage {
 
     // ── Help popup ────────────────────────────────────────────────────────────
 
-    // The D2C help popup always appears after consent — wait for it as a page-ready
-    // signal, then dismiss it before proceeding with the rest of the journey.
+    // The D2C help popup always appears after consent — wait for it, then dismiss it before
+    // proceeding with the rest of the journey.
+    //
+    // IMPORTANT: the popup OVERLAYS the product list, so the not-interested button can be visible
+    // behind it — its visibility is NOT proof the popup is gone. The popup's presence is detected
+    // SOLELY by the help-confirm button, and we only proceed once help-confirm is confirmed
+    // invisible. If the popup is up but cannot be dismissed, we fail hard rather than proceed with
+    // a covered UI (the previous behaviour silently continued, leaving the popup on screen).
     @Step("Wait for help popup to appear and dismiss it")
     public PreviewJourneyPage waitForHelpPopupAndDismiss() {
-        // If not-interested is already visible the product list is ready — popup already gone.
-        if (!driver.findElements(notInterestedButton).isEmpty()
-                && driver.findElement(notInterestedButton).isDisplayed()) {
-            System.out.println("[D2C] Not-interested button already visible — help popup already dismissed");
-            return this;
-        }
-        // Check immediately whether help-confirm is present — no wait, no timeout cost.
-        boolean present = !driver.findElements(helpConfirmButton).isEmpty()
-                && driver.findElement(helpConfirmButton).isDisplayed();
-        if (!present) {
-            System.out.println("[D2C] Help popup not present — reloading immediately");
+        // Give the popup time to appear. If it doesn't, reload once and wait again — Bubble.io
+        // occasionally renders the list without firing the popup on the first load.
+        if (!waitForHelpConfirmVisible(15)) {
+            System.out.println("[D2C] Help popup not visible within 15s — reloading and waiting again");
             driver.navigate().refresh();
+            if (!waitForHelpConfirmVisible(30)) {
+                System.out.println("[D2C] Help popup never appeared after reload — assuming no popup, proceeding");
+                return this;
+            }
         }
+
+        // Popup is up — click help-confirm and confirm it disappears. Retry because Bubble.io may
+        // not have attached the click handler yet on the first attempt.
+        for (int attempt = 1; attempt <= 4; attempt++) {
+            try {
+                jsClick(helpConfirmButton);
+            } catch (Exception e) {
+                System.out.println("[D2C] help-confirm click attempt " + attempt + " failed: " + e.getMessage());
+            }
+            try {
+                new WebDriverWait(driver, 5).until(
+                    ExpectedConditions.invisibilityOfElementLocated(helpConfirmButton));
+                System.out.println("[D2C] Help popup dismissed on attempt " + attempt);
+                return this;
+            } catch (Exception e) {
+                System.out.println("[D2C] Help popup still visible after dismiss attempt " + attempt + " — retrying");
+            }
+        }
+
+        throw new AssertionError(
+            "[D2C] Help popup (help-confirm) still visible after 4 dismiss attempts — refusing to proceed "
+            + "with the popup still covering the UI");
+    }
+
+    // Returns true once help-confirm is visible within the timeout, false otherwise (no throw).
+    private boolean waitForHelpConfirmVisible(int timeoutSeconds) {
         try {
-            new WebDriverWait(driver, 30).until(
+            new WebDriverWait(driver, timeoutSeconds).until(
                 ExpectedConditions.visibilityOfElementLocated(helpConfirmButton));
-            jsClick(helpConfirmButton);
-            new WebDriverWait(driver, 10).until(
-                ExpectedConditions.invisibilityOfElementLocated(helpConfirmButton));
+            return true;
         } catch (Exception e) {
-            System.out.println("[D2C] help-confirm did not appear — skipping popup dismissal and proceeding");
+            return false;
         }
-        return this;
     }
 
     // ── Not Interested — logged-in user ───────────────────────────────────────
@@ -199,6 +226,8 @@ public class PreviewJourneyPage extends BasePage {
     // Verified by presence of marketplacesimulation_shopsetup_next_button.
     @Step("Click Not Interested and verify redirect to shop setup page")
     public PreviewJourneyPage clickNotInterestedAndVerifyShopSetupRedirect() {
+        // A delayed help popup can overlay the Not Interested button — clear it before clicking.
+        dismissHelpPopupIfPresent();
         jsClick(notInterestedButton);
         try {
             new WebDriverWait(driver, 30).until(
@@ -266,11 +295,24 @@ public class PreviewJourneyPage extends BasePage {
 
     private void retriggerPreviewFromEditor() {
         By previewBtn = By.id("newproject_formquestions_previewjourney_button");
+        By desktopBtn = By.id("preview-desktop");
         Set<String> before = driver.getWindowHandles();
         WebElement btn = new WebDriverWait(driver, 30).until(
             ExpectedConditions.elementToBeClickable(previewBtn));
         scrollToCenter(btn);
         jsClick(previewBtn);
+        // The Desktop/Mobile chooser popup appears after clicking Preview and does NOT auto-open a
+        // tab — Desktop must be selected first (mirrors FormQuestionsPage.openPreviewChooserAndSelectDesktop()).
+        // Best-effort so it works whether or not the chooser is shown: poll briefly, click if present.
+        try {
+            WebElement desktop = new WebDriverWait(driver, 10).until(
+                ExpectedConditions.elementToBeClickable(desktopBtn));
+            scrollToCenter(desktop);
+            jsClick(desktopBtn);
+            System.out.println("[D2C Logged-in] Selected Desktop in preview chooser on re-trigger");
+        } catch (Exception e) {
+            System.out.println("[D2C Logged-in] Desktop chooser not shown after preview click — proceeding");
+        }
         String newHandle = new WebDriverWait(driver, 30).until(d -> {
             for (String h : d.getWindowHandles()) {
                 if (!before.contains(h)) return h;

@@ -83,6 +83,41 @@ public abstract class BasePage {
         }
     }
 
+    // The D2C help popup (help-confirm) can appear DELAYED — after the initial dismiss step has
+    // already passed, mid-flow over the product list / opener. This is a FAST, non-blocking guard:
+    // if the popup is currently showing it dismisses it (with a short retry until it's gone); if it
+    // is not present it returns immediately with no wait cost. Safe to call before any interaction
+    // the popup could overlay, so a delayed popup never silently blocks a later click.
+    protected void dismissHelpPopupIfPresent() {
+        By helpConfirm = By.id("help-confirm");
+        if (!isElementDisplayed(helpConfirm)) return;
+        System.out.println("[D2C] Help popup appeared mid-flow — dismissing before proceeding");
+        for (int attempt = 1; attempt <= 4 && isElementDisplayed(helpConfirm); attempt++) {
+            try {
+                WebElement el = driver.findElement(helpConfirm);
+                ((JavascriptExecutor) driver).executeScript("arguments[0].click();", el);
+            } catch (Exception ignored) {}
+            try {
+                new WebDriverWait(driver, 3).until(
+                    ExpectedConditions.invisibilityOfElementLocated(helpConfirm));
+                System.out.println("[D2C] Mid-flow help popup dismissed on attempt " + attempt);
+                return;
+            } catch (Exception e) {
+                System.out.println("[D2C] Mid-flow help popup still visible after attempt " + attempt + " — retrying");
+            }
+        }
+    }
+
+    // True only if the element is present in the DOM AND displayed; never throws.
+    protected boolean isElementDisplayed(By locator) {
+        try {
+            java.util.List<WebElement> els = driver.findElements(locator);
+            return !els.isEmpty() && els.get(0).isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     // Retries on StaleElementReferenceException — Bubble.io re-renders the DOM reactively,
     // which can invalidate a found element before the click fires.
     protected void click(By locator) {

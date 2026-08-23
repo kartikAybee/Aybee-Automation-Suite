@@ -41,14 +41,23 @@ public class D2CProductPage extends BasePage {
         String price = getDisplayedProductPrice();
 
         if (!containsIgnoreCase(name, expectedName) && !containsIgnoreCase(expectedName, name)) {
-            sa.fail("[D2CProduct] Name mismatch. Expected: [" + expectedName + "] Got: [" + name + "]");
+            sa.fail("[D2C Product Detail page] Name mismatch — "
+                + "expected (product selected from the list): [" + expectedName + "] "
+                + "but shown on the product detail page: [" + name + "]");
         } else {
             System.out.println("[D2CProduct] Name confirmed: " + name);
         }
 
+        // Competitors have no shop-setup price (single source of truth) — skip the price check.
+        if (expectedPrice == null || expectedPrice.trim().isEmpty()) {
+            System.out.println("[D2CProduct] No shop-setup expected price (competitor) — skipping price check. Detail page shows: " + price);
+            return this;
+        }
         String expectedFormatted = expectedPrice.startsWith("$") ? expectedPrice : "$" + expectedPrice;
         if (!price.equals(expectedFormatted)) {
-            sa.fail("[D2CProduct] Price mismatch. Expected: [" + expectedFormatted + "] Got: [" + price + "]");
+            sa.fail("[D2C Product Detail page] Price mismatch for product [" + name + "] — "
+                + "expected (price shown for this product on the list): [" + expectedFormatted + "] "
+                + "but shown on the product detail page: [" + price + "]");
         } else {
             System.out.println("[D2CProduct] Price confirmed: " + price);
         }
@@ -95,10 +104,11 @@ public class D2CProductPage extends BasePage {
                 sa.fail("[D2CCart] checkout-price-" + name + " not found");
                 return this;
             }
-            String cartPrice = priceEl.getText().trim();
-            if (!normalizePrice(cartPrice).equals(normalizePrice(productPrice))) {
-                sa.fail("[D2CCart] Price mismatch for [" + name + "]. "
-                    + "Product page: [" + productPrice + "] Cart: [" + cartPrice + "]");
+            String cartPrice = priceEl.getText();
+            if (!cartPrice.equals(productPrice)) {
+                sa.fail("[D2C Cart sidebar] Price mismatch for product [" + name + "] — "
+                    + "expected (product detail page price): [" + productPrice + "] "
+                    + "but cart line-item price: [" + cartPrice + "]");
             } else {
                 System.out.println("[D2CCart] Cart item price matches product page: " + cartPrice);
             }
@@ -187,4 +197,5 @@ public class D2CProductPage extends BasePage {
         return source != null && target != null
             && source.toLowerCase().contains(target.toLowerCase());
     }
+
 }

@@ -24,6 +24,8 @@ public class D2CProductListPage extends BasePage {
         new WebDriverWait(driver, 30).until(
             ExpectedConditions.visibilityOfElementLocated(
                 By.cssSelector("[id^='d2c-item-name-']")));
+        // A delayed help popup can render over the list — clear it so it doesn't block selection.
+        dismissHelpPopupIfPresent();
         return this;
     }
 
@@ -76,8 +78,9 @@ public class D2CProductListPage extends BasePage {
             String listPrice = getProductPriceFromList(productName);
             String expectedFormatted = expectedPrice.startsWith("$") ? expectedPrice : "$" + expectedPrice;
             if (!listPrice.equals(expectedFormatted)) {
-                sa.fail("[D2CList] Price mismatch for [" + productName + "]. "
-                    + "Expected: [" + expectedFormatted + "] Got: [" + listPrice + "]");
+                sa.fail("[D2C Product List page] Price mismatch for product [" + productName + "] — "
+                    + "expected (from shop-setup price): [" + expectedFormatted + "] "
+                    + "but shown on the product list card: [" + listPrice + "]");
             } else {
                 System.out.println("[D2CList] List price confirmed: " + listPrice);
             }
@@ -103,6 +106,8 @@ public class D2CProductListPage extends BasePage {
     // Returns the exact name suffix from the element's ID (preserves original casing).
     @Step("Select product '{productName}' from D2C product list")
     public String selectProduct(String productName) {
+        // Guard against a delayed help popup overlaying the list right before we click.
+        dismissHelpPopupIfPresent();
         WebElement btn = findById(NAME_PREFIX + productName);
         if (btn == null) btn = scanForProductButton(productName);
         if (btn == null) {
@@ -118,6 +123,8 @@ public class D2CProductListPage extends BasePage {
     // Selects the first option from the opener popup and waits for the D2C product page.
     @Step("Answer opener question popup and wait for D2C product page")
     public void answerOpenerQuestion() {
+        // A delayed help popup can surface over the opener — clear it before interacting.
+        dismissHelpPopupIfPresent();
         new WebDriverWait(driver, 30).until(
             ExpectedConditions.presenceOfElementLocated(nextOpenerBtn));
         List<WebElement> options = new FluentWait<>(driver)

@@ -718,6 +718,18 @@ public class FormQuestionsPage extends BasePage {
     // Opens the preview: clicks the Preview button, waits for the Desktop/Mobile chooser popup, and
     // selects Desktop (preview-desktop). Validation/error toasts fire AFTER the Desktop selection,
     // so the caller's poll for a new tab / toast happens once Desktop has been picked.
+    // Reloads the Form Questions editor once, right before opening preview, so the backend data loads
+    // fully (it can render incompletely in the preview journey on the very first open). Mirrors the PDP
+    // precaution. The caller commits/validates fields BEFORE this reload so nothing is lost.
+    public FormQuestionsPage reloadEditorForProductLoad() {
+        System.out.println("[FormQuestions] Reloading editor before preview so all data loads properly");
+        driver.navigate().refresh();
+        new WebDriverWait(driver, 45).until(
+            ExpectedConditions.presenceOfElementLocated(previewJourneyButton));
+        try { Thread.sleep(3000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        return this;
+    }
+
     private void openPreviewChooserAndSelectDesktop() {
         scrollTo(previewJourneyButton);
         jsClick(previewJourneyButton);
@@ -764,6 +776,11 @@ public class FormQuestionsPage extends BasePage {
     public String clickPreviewAndGetUrl(int... retriggerQuestionIndices) {
         try { Thread.sleep(2000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
         String mainWindow = driver.getWindowHandle();
+
+        // Commit the last field (title click) then reload the editor so data loads fully before preview
+        // — PDP precaution. validateAllInputs is idempotent, so it's safe if the step already called it.
+        validateAllInputs();
+        reloadEditorForProductLoad();
 
         openPreviewChooserAndSelectDesktop();
 

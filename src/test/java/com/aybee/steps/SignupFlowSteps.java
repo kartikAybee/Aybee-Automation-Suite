@@ -281,7 +281,10 @@ public class SignupFlowSteps {
     @Then("I should see a notification matching {string}")
     public void iShouldSeeNotificationMatching(String constantName) {
         String expected = resolveNotification(constantName);
-        String actual   = new DashboardPage().getNotificationText();
+        // Poll until the toast text contains the expected message — a stale toast (e.g. the invite
+        // "join team" toast) may still be animating out while the real one loads, so a single read
+        // can catch the wrong toast.
+        String actual = new DashboardPage().waitForNotificationContaining(expected, 15);
         context.softAssert.assertTrue(actual.contains(expected),
                 "Expected notification containing [" + expected + "] but got [" + actual + "]");
     }

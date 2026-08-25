@@ -53,26 +53,25 @@ public class CompanySelectionPage extends BasePage {
         return this;
     }
 
-    // The company list can be long/lazy — the target button may not be in the DOM until we scroll
-    // down to it. The list lives inside the popup, so scrolling the WINDOW does nothing; scroll the
-    // popup's own scrollable container instead. Scroll in increments until the button appears.
+    // The company list (id "company-list") is long/lazy — the target button isn't in the DOM until
+    // we scroll down to it. Poll for up to 30s: every 500ms scroll the list down a step and re-check
+    // for the button. Simple and robust — it keeps scrolling (and lazy-loading) until the button
+    // appears or the timeout elapses. Returns the target for centring + clicking.
     private WebElement scrollUntilPresent(By locator) {
-        for (int i = 0; i < 25; i++) {
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        long deadline = System.currentTimeMillis() + 30_000;
+        while (System.currentTimeMillis() < deadline) {
             java.util.List<WebElement> els = driver.findElements(locator);
             if (!els.isEmpty()) return els.get(0);
-            scrollPopupDown();
-            try { Thread.sleep(300); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
+            js.executeScript(
+                    "var l=document.getElementById('company-list');" +
+                    "if(l){l.scrollBy(0,500);}else{window.scrollBy(0,500);}");
+            try { Thread.sleep(500); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
         }
-        return new WebDriverWait(driver, 10)
+        java.util.List<WebElement> els = driver.findElements(locator);
+        if (!els.isEmpty()) return els.get(0);
+        return new WebDriverWait(driver, 5)
                 .until(ExpectedConditions.presenceOfElementLocated(locator));
-    }
-
-    // Scrolls the scrollable company list down. The list is its own element (id "company-list"),
-    // separate from create-company-btn which sits outside it — so scroll that element directly.
-    private void scrollPopupDown() {
-        ((JavascriptExecutor) driver).executeScript(
-            "var list = document.getElementById('company-list');" +
-            "if (list) { list.scrollBy(0, 500); } else { window.scrollBy(0, 500); }");
     }
 
     public boolean isPending(String companyName) {

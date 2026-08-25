@@ -3,10 +3,6 @@ package com.aybee.pages;
 import com.aybee.utils.ConfigReader;
 import io.qameta.allure.Step;
 import org.openqa.selenium.By;
-import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
 
 public class SignUpPage extends BasePage {
 
@@ -47,14 +43,7 @@ public class SignUpPage extends BasePage {
 
     @Step("Enter email: {email}")
     public SignUpPage enterEmail(String email) {
-        // Force-clear via JS first: on invite sign-up pages the email field can be pre-filled, and
-        // Bubble's native clear() sometimes leaves residue that concatenates with the typed value
-        // into an invalid address. Blank the value + fire an input event so Bubble registers it.
-        WebElement el = new WebDriverWait(driver, 15)
-                .until(ExpectedConditions.visibilityOfElementLocated(emailField));
-        ((JavascriptExecutor) driver).executeScript(
-                "arguments[0].value=''; arguments[0].dispatchEvent(new Event('input',{bubbles:true}));", el);
-        type(emailField, email);
+        type(emailField, email);  // type() force-clears first (handles Chrome/Bubble prefill)
         return this;
     }
 

@@ -91,6 +91,12 @@ public abstract class BasePage {
         while (attempts < 3) {
             try {
                 WebElement el = wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
+                // Force-clear before typing: Chrome autofill / Bubble prefill can leave a stale value
+                // that native clear() doesn't remove, polluting the field (the typed text concatenates
+                // with it). Blank via JS + fire an input event so Bubble registers the clear, then
+                // clear() as a belt-and-braces, then type.
+                ((JavascriptExecutor) driver).executeScript(
+                        "arguments[0].value=''; arguments[0].dispatchEvent(new Event('input',{bubbles:true}));", el);
                 el.clear();
                 if (text != null && !text.isEmpty()) {
                     el.sendKeys(text);
@@ -146,7 +152,31 @@ public abstract class BasePage {
             new WebDriverWait(driver, 2)
                     .until(ExpectedConditions.elementToBeClickable(By.id("dismiss-toast")))
                     .click();
+            // Wait for the toast to actually animate out — otherwise a stale toast lingers and the
+            // next notification read grabs it instead of the fresh one that's still loading.
+            new WebDriverWait(driver, 5)
+                    .until(ExpectedConditions.invisibilityOfElementLocated(toastContainer));
         } catch (Exception ignored) {}
+    }
+
+    // Polls the toast text until it CONTAINS expected — a fresh toast may replace a stale one that
+    // is still animating out, so a single read can catch the wrong (old) toast. Returns the matching
+    // text, or the last text seen on timeout (so the caller's assertion reports what actually showed).
+    public String waitForNotificationContaining(String expected, int timeoutSecs) {
+        final String[] last = {""};
+        try {
+            return new WebDriverWait(driver, timeoutSecs, 200).until(d -> {
+                try {
+                    String text = d.findElement(notificationToast).getText();
+                    if (text != null && !text.trim().isEmpty()) last[0] = text;
+                    return (text != null && text.contains(expected)) ? text : null;
+                } catch (Exception e) {
+                    return null;
+                }
+            });
+        } catch (Exception e) {
+            return last[0];
+        }
     }
 
     // Waits up to 5 s for a browser native alert, returns its text, and dismisses it.

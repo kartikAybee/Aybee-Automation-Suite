@@ -1,9 +1,11 @@
 package com.aybee.steps;
 
 import com.aybee.context.ScenarioContext;
+import com.aybee.driver.DriverManager;
 import com.aybee.driver.SessionManager;
 import com.aybee.pages.CompanySelectionPage;
 import com.aybee.pages.DashboardPage;
+import com.aybee.pages.OnboardingPage;
 import com.aybee.pages.SignUpPage;
 import com.aybee.pages.TeamPage;
 import com.aybee.utils.TestUser;
@@ -105,9 +107,15 @@ public class JoinRequestSteps {
     @Then("the requester is admitted into the company")
     public void theRequesterIsAdmittedIntoTheCompany() {
         SessionManager.useRequester();
-        // Admission moves the requester off the popup (pending clears; the request surface is gone).
-        Assert.assertTrue(new CompanySelectionPage().isPendingGone(company()),
-                "Expected the requester to be admitted (pending cleared) into " + company());
+        // Approval admits the requester into C. Refresh this session (Bubble may not push the
+        // change here), then complete onboarding if the join surfaces it, and confirm the
+        // dashboard — proving real membership, not merely that the pending status cleared.
+        DriverManager.getDriver().navigate().refresh();
+        new OnboardingPage().completeIfPresent();
+        DashboardPage dashboard = new DashboardPage();
+        Assert.assertTrue(dashboard.isLoaded(30),
+                "Expected the requester to be admitted into " + company()
+                        + " and reach the dashboard after approval");
     }
 
     @Then("the requester sees a rejected status for the shared company")

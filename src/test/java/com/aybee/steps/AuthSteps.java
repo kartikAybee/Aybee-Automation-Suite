@@ -1,16 +1,13 @@
 package com.aybee.steps;
 
 import com.aybee.context.ScenarioContext;
-import com.aybee.driver.DriverManager;
 import com.aybee.pages.DashboardPage;
 import com.aybee.pages.ForgotPasswordPage;
 import com.aybee.pages.OtpVerificationPage;
 import com.aybee.pages.SignInPage;
 import com.aybee.pages.SignUpPage;
-import com.aybee.utils.MailosaurHelper;
 import com.aybee.utils.TestUser;
 import com.aybee.utils.TestUserFactory;
-import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -44,23 +41,36 @@ public class AuthSteps {
         context.forgotPasswordPage = context.signInPage.clickForgotPassword();
     }
 
-    // Creates a fresh verified account via sign-up + OTP, then clears the session
-    // so the scenario under test starts from a logged-out state.
+    // Reuses the run-shared verified account (created once) so we don't spawn a new company per
+    // scenario, then clears the session so the scenario under test starts logged out.
     @Given("a verified user account exists")
     public void aVerifiedUserAccountExists() {
-        context.testUser = TestUserFactory.createVerifiedUser();
-        // createVerifiedUser() leaves the browser logged in on the dashboard;
+        context.testUser = TestUserFactory.getSharedVerifiedUser();
+        // Creating the shared account (first call) leaves the browser logged in on the dashboard;
         // safeResetSession navigates away before clearing to avoid Bubble.io's alert.
         TestUserFactory.safeResetSession();
     }
 
-    // Creates a fresh verified account and leaves the browser logged in on the
-    // dashboard — for scenarios that start from an active session (invite flows, etc.).
+    // Reuses the run-shared verified account and ensures the browser is logged in as it — for
+    // scenarios that start from an active session (invite flows, etc.). On first use the shared
+    // account was just created and is already on the dashboard; on reuse the session was cleared,
+    // so sign in with the account's CURRENT password (reset scenario may have changed it).
     @Given("I am logged in as a verified user")
     public void iAmLoggedInAsAVerifiedUser() {
-        context.testUser           = TestUserFactory.createVerifiedUser();
-        context.inviterCompanyName = context.testUser.company;
-        context.dashboardPage      = new DashboardPage();
+        TestUser user = TestUserFactory.getSharedVerifiedUser();
+        context.testUser           = user;
+        context.inviterCompanyName = user.company;
+
+        // Always sign in as THE shared account. A prior scenario may have left a DIFFERENT user
+        // (e.g. an invitee who just accepted an invitation) logged in on a dashboard, so merely
+        // "is a dashboard shown?" is not enough — we'd otherwise drive the Team page as that user
+        // and the invite sidebar/fields would never appear. Reset the session and log in cleanly.
+        TestUserFactory.safeResetSession();
+        context.signInPage = new SignUpPage().navigateTo().clickSignInLink();
+        context.signInPage.enterEmail(user.email).enterPassword(user.password).clickSignIn();
+        DashboardPage dashboard = new DashboardPage();
+        dashboard.isLoaded();
+        context.dashboardPage = dashboard;
     }
 
 

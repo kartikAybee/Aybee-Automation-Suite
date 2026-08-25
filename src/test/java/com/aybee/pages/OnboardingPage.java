@@ -38,7 +38,7 @@ public class OnboardingPage extends BasePage {
         for (int i = 1; i <= totalQuestions; i++) {
             wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("onboarding_question" + i)));
             if (i == totalQuestions) {
-                type(hearAboutField, "Aybee Test");
+                type(hearAboutField, "Automation");
                 blurActiveElement();
                 click(continueButton);
             } else {

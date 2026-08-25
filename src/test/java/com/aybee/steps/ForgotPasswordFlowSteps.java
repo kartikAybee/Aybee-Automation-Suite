@@ -13,6 +13,10 @@ public class ForgotPasswordFlowSteps {
 
     private final ScenarioContext context;
 
+    // Remembers the last "new password" typed so we can write it back to the shared account
+    // once the reset actually succeeds (this scenario reuses the shared account).
+    private String lastNewPassword;
+
     public ForgotPasswordFlowSteps(ScenarioContext context) {
         this.context = context;
     }
@@ -77,6 +81,7 @@ public class ForgotPasswordFlowSteps {
 
     @When("I enter {string} as the new password")
     public void iEnterAsNewPassword(String password) {
+        lastNewPassword = password;
         context.resetPasswordPage.enterNewPassword(password);
     }
 
@@ -96,8 +101,16 @@ public class ForgotPasswordFlowSteps {
     @Then("I should see a password reset success notification")
     public void iShouldSeePasswordResetSuccess() {
         context.dashboardPage = new com.aybee.pages.DashboardPage();
-        context.softAssert.assertTrue(context.dashboardPage.isLoaded(),
+        // Bubble processes the save and redirects to the dashboard on a delay — wait generously
+        // (the default 15s visibility wait can expire before the redirect completes).
+        boolean loaded = context.dashboardPage.isLoaded(30);
+        context.softAssert.assertTrue(loaded,
                 "Expected to be redirected to the dashboard after a successful password reset");
+        // The shared account's password is now the value we just set — write it back so any
+        // later scenario reusing this account signs in with the current password.
+        if (loaded && context.testUser != null && lastNewPassword != null) {
+            context.testUser.password = lastNewPassword;
+        }
     }
 
     @Then("the save password button should be disabled")

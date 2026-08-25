@@ -5,6 +5,7 @@ import com.aybee.driver.DriverManager;
 import com.aybee.utils.DiagnosticsCollector;
 import com.aybee.utils.JamManager;
 import io.cucumber.java.After;
+import io.cucumber.java.AfterStep;
 import io.cucumber.java.Before;
 import io.cucumber.java.Scenario;
 import io.qameta.allure.Allure;
@@ -34,6 +35,20 @@ public class AllureHooks {
         DiagnosticsCollector.reset(nowMs);
     }
 
+    // Capture a screenshot at the body step the moment a step fails (hard assert / exception).
+    // Runs after every step; only fires when that step just failed, so it lands inline in the
+    // scenario body — not in the "Tear down" fixture. Soft-assert failures are captured separately,
+    // at fail-time, by ScreenshotSoftAssert.
+    @AfterStep
+    public void screenshotOnStepFailure(Scenario scenario) {
+        if (!scenario.isFailed()) return;
+        try {
+            byte[] screenshot = ((TakesScreenshot) DriverManager.getDriver())
+                    .getScreenshotAs(OutputType.BYTES);
+            Allure.addAttachment("Failure Screenshot", new ByteArrayInputStream(screenshot));
+        } catch (Exception ignored) {}
+    }
+
     @After
     public void tearDown(Scenario scenario) {
         AssertionError softFailure = null;
@@ -44,12 +59,8 @@ public class AllureHooks {
         }
 
         if (scenario.isFailed() || softFailure != null) {
-            try {
-                byte[] screenshot = ((TakesScreenshot) DriverManager.getDriver())
-                        .getScreenshotAs(OutputType.BYTES);
-                Allure.addAttachment("Failure Screenshot", new ByteArrayInputStream(screenshot));
-            } catch (Exception ignored) {}
-
+            // No teardown screenshot: hard-assert failures are captured inline by the @AfterStep
+            // hook above, and soft-assert failures by ScreenshotSoftAssert — both at the body step.
             String pageUrl = "";
             try { pageUrl = DriverManager.getDriver().getCurrentUrl(); } catch (Exception ignored) {}
             String diagnostics = DiagnosticsCollector.collectAndFormat(DriverManager.getDriver());

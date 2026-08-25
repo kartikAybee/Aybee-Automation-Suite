@@ -4,7 +4,6 @@ Feature: OTP Verification — Wrong Code, Cancellation, and Abandonment Cases
   Scenario: Entering a wrong OTP shows invalid code error
     Given I navigate to sign up via "direct_signup"
     When I fill in the sign up form:
-      | company   | Aybee Test |
       | firstName | Test       |
       | lastName  | User       |
       | password  | Test@1234  |

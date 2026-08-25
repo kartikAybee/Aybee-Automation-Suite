@@ -3,7 +3,9 @@ package com.aybee.utils;
 public class TestUser {
 
     public final String email;
-    public final String password;
+    // Non-final: the ForgotPassword reset scenario changes the shared account's password and
+    // writes the new value back here so later reuse logs in with the current password.
+    public String password;
     public final String company;
     public final String firstName;
     public final String lastName;

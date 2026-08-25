@@ -3,7 +3,6 @@ package com.aybee.steps;
 import com.aybee.context.ScenarioContext;
 import com.aybee.driver.DriverManager;
 import com.aybee.pages.AcceptInvitationPage;
-import com.aybee.pages.DashboardPage;
 import com.aybee.pages.SignUpPage;
 import com.aybee.utils.MailosaurHelper;
 import com.aybee.utils.TestUserFactory;
@@ -88,7 +87,9 @@ public class InviteFlowSteps {
         context.inviteUrl = new MailosaurHelper().getInviteUrlForEmail(context.inviteeEmail);
 
         // Register the invitee so the invite-accept will fail with "email already in use".
-        TestUserFactory.createVerifiedUserWithEmail(context.inviteeEmail, context.inviteePassword);
+        // Reach-only: the email just needs to exist — it stops on the company-selection popup and
+        // never creates a company (keeps the suite at a single company).
+        TestUserFactory.registerToCompanySelection(context.inviteeEmail, context.inviteePassword);
 
         clearSession();
     }

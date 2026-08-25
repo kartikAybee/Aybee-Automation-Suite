@@ -2,6 +2,11 @@ package com.aybee.pages;
 
 import io.qameta.allure.Step;
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.interactions.Actions;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 
 public class ResetPasswordPage extends BasePage {
 
@@ -31,8 +36,18 @@ public class ResetPasswordPage extends BasePage {
 
     @Step("Click Save New Password")
     public void clickSave() {
+        // Blur the confirm field so Bubble's reactive validation enables the button. Then trigger
+        // the button with a real mouse hover + click (Actions) — a plain click was leaving the save
+        // un-fired; the hover primes Bubble's handler. JS click is the last-resort fallback.
         blurActiveElement();
-        clickWhenEnabled(saveButton);
+        WebElement btn = new WebDriverWait(driver, 15)
+                .until(ExpectedConditions.presenceOfElementLocated(saveButton));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block:'center'});", btn);
+        try {
+            new Actions(driver).moveToElement(btn).click().perform();
+        } catch (Exception e) {
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", btn);
+        }
     }
 
     public boolean isLoaded() {

@@ -37,27 +37,20 @@ public class SignupFlowSteps {
 
     // ─── SIGN UP FORM ACTIONS ─────────────────────────────────────────────────────
 
-    // Accepts a DataTable with keys: company, firstName, lastName, password (required)
-    // and optionally: email. Priority: explicit in table > pre-set by invite flow > generate fresh.
+    // Accepts a DataTable with keys: firstName, lastName, password (required) and optionally email.
+    // The company is never taken from the table: on a direct signup the field is editable, so we
+    // generate a fresh MLSR company (DB-filterable, and reused as-is when create-company is clicked);
+    // on an invite signup the field is pre-filled + locked, so we leave it alone.
     @When("I fill in the sign up form:")
     public void iFillInSignUpForm(DataTable dataTable) {
         Map<String, String> data = dataTable.asMap(String.class, String.class);
-        String email;
-        if (data.containsKey("email")) {
-            email = data.get("email");                          // explicit (e.g. invalid email test)
-        } else {
-            email = MailosaurHelper.generateEmail();            // always fresh — never reuse a prior user
-        }
+        String email = data.containsKey("email")
+                ? data.get("email")                         // explicit (e.g. invalid email test)
+                : MailosaurHelper.generateEmail();          // always fresh — never reuse a prior user
+
+        String company = enterMlsrCompanyIfEditable();
         context.testUser = new TestUser(
-                email,
-                data.get("password"),
-                data.containsKey("company") ? data.get("company") : "",
-                data.get("firstName"),
-                data.get("lastName"));
-        // Skip company entry if the key is absent — field may be pre-filled and locked by invite
-        if (data.containsKey("company")) {
-            context.signUpPage.enterCompanyName(context.testUser.company);
-        }
+                email, data.get("password"), company, data.get("firstName"), data.get("lastName"));
         context.signUpPage
                 .enterFirstName(context.testUser.firstName)
                 .enterLastName(context.testUser.lastName)
@@ -66,18 +59,24 @@ public class SignupFlowSteps {
     }
 
     // Reuses the email from context.testUser; other fields come from the DataTable.
-    // company is optional — omit it when the field is pre-filled and locked (invite page).
     @When("I attempt to sign up with the same email and:")
     public void iAttemptSignUpWithSameEmailAnd(DataTable dataTable) {
         Map<String, String> data = dataTable.asMap(String.class, String.class);
-        if (data.containsKey("company")) {
-            context.signUpPage.enterCompanyName(data.get("company"));
-        }
+        enterMlsrCompanyIfEditable();
         context.signUpPage
                 .enterFirstName(data.get("firstName"))
                 .enterLastName(data.get("lastName"))
                 .enterEmail(context.testUser.email)
                 .enterPassword(data.get("password"));
+    }
+
+    // Enters a generated MLSR company only when the field is editable (direct signup); on invite
+    // signups it is pre-filled + locked, so this is a no-op. Returns the entered name (or "").
+    private String enterMlsrCompanyIfEditable() {
+        if (context.signUpPage.isCompanyNameLocked()) return "";
+        String company = TestUserFactory.mlsrCompanyName();
+        context.signUpPage.enterCompanyName(company);
+        return company;
     }
 
     // Fills the sign up form using the configured Google test account email/password.
@@ -110,6 +109,14 @@ public class SignupFlowSteps {
     @And("I click Next to activate my account")
     public void iClickNextToActivate() {
         context.otpPage.clickActivate();
+    }
+
+    // Direct registrations land on the company-selection popup after activation, before onboarding.
+    // The new company reuses the name entered at sign up (MLSR) — the popup only has a button, no
+    // name input. Bubble then redirects to the onboarding questions.
+    @And("I create a new company")
+    public void iCreateANewCompany() {
+        new com.aybee.pages.CompanySelectionPage().waitUntilLoaded().createCompany();
     }
 
     @And("I complete the onboarding questions if displayed")

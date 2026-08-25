@@ -2,6 +2,8 @@ package com.aybee.pages;
 
 import io.qameta.allure.Step;
 import org.openqa.selenium.By;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 
 public class DashboardPage extends BasePage {
 
@@ -45,6 +47,18 @@ public class DashboardPage extends BasePage {
 
     public boolean isLoaded() {
         return isElementVisible(profileIcon);
+    }
+
+    // Longer, explicit wait — used after actions where Bubble redirects to the dashboard on a
+    // delay (e.g. a password reset), which can exceed the default 15s visibility wait.
+    public boolean isLoaded(int timeoutSecs) {
+        try {
+            new WebDriverWait(driver, timeoutSecs)
+                    .until(ExpectedConditions.visibilityOfElementLocated(profileIcon));
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     // getNotificationText() and isNotificationVisible() are inherited from BasePage

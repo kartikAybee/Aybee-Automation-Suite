@@ -4,36 +4,52 @@ import com.aybee.utils.ConfigReader;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 public class DriverManager {
 
     private static final ThreadLocal<WebDriver> driver = new ThreadLocal<>();
-    // Held separately so the shutdown hook can quit the driver after the suite finishes.
-    private static volatile WebDriver activeDriver;
+    // Every session ever created is tracked so the shutdown hook can quit them all — the
+    // join-request flow runs two concurrent sessions (admin + requester).
+    private static final List<WebDriver> allDrivers = new CopyOnWriteArrayList<>();
 
     static {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            if (activeDriver != null) {
-                activeDriver.quit();
-                activeDriver = null;
+            for (WebDriver d : allDrivers) {
+                try { d.quit(); } catch (Exception ignored) {}
             }
+            allDrivers.clear();
         }));
     }
 
     public static WebDriver getDriver() {
         if (driver.get() == null) {
-            WebDriver d = createDriver();
-            driver.set(d);
-            activeDriver = d;
+            driver.set(newDriver());
         }
         return driver.get();
     }
 
+    // Creates an independent browser session (fresh temp profile) WITHOUT changing the active
+    // session. Used to run a second concurrent session alongside the default one.
+    public static WebDriver newDriver() {
+        WebDriver d = createDriver();
+        allDrivers.add(d);
+        return d;
+    }
+
+    // Points subsequent getDriver() calls (and page objects created afterward) at the given session.
+    public static void setDriver(WebDriver d) {
+        driver.set(d);
+    }
+
     // Available for explicit teardown if ever needed, but not called between scenarios.
     public static void quitDriver() {
-        if (driver.get() != null) {
-            driver.get().quit();
+        WebDriver d = driver.get();
+        if (d != null) {
+            try { d.quit(); } catch (Exception ignored) {}
+            allDrivers.remove(d);
             driver.remove();
-            activeDriver = null;
         }
     }
 

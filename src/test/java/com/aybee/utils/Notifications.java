@@ -8,7 +8,7 @@ public class Notifications {
 
     // ─── Sign in ──────────────────────────────────────────────────────────────────
     public static final String INVALID_SIGNIN_CREDENTIALS =
-            "Invalid email or password. Please try again or reset your password.";
+            "Invalid email or password. Please try again or reset your password or try signing up.";
 
     // ─── OTP activation page ─────────────────────────────────────────────────────
     public static final String ACTIVATION_CODE_RESENT =

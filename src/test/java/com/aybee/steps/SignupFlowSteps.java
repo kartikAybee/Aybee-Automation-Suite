@@ -32,6 +32,9 @@ public class SignupFlowSteps {
 
     @Given("I navigate to sign up via {string}")
     public void iNavigateToSignUpVia(String method) {
+        // Start from a clean, logged-out session so BASE_URL loads the sign-up page — a leftover
+        // session from a prior scenario would redirect to the company-selection popup / dashboard.
+        TestUserFactory.safeResetSession();
         context.signUpPage = new SignUpPage().navigateTo();
     }
 

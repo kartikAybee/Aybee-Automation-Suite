@@ -78,7 +78,12 @@ public class AuthSteps {
     // repeating a full sign-up flow when the browser is already on the activation page.
     @Given("I am on the OTP activation page")
     public void iAmOnTheOtpActivationPage() {
-        if (context.otpPage != null && context.otpPage.isLoaded()) return;
+        // Always start from a clean, logged-out session so the sign-up page actually loads. A
+        // leftover session from a prior scenario redirects BASE_URL to the company-selection popup
+        // (or dashboard) instead of sign-up, and signup-companyname never appears. (The old
+        // context.otpPage reuse never triggered — ScenarioContext is per-scenario — and couldn't
+        // carry context.testUser across scenarios anyway, so a fresh sign-up is the correct path.)
+        TestUserFactory.safeResetSession();
         TestUser user = TestUserFactory.generateUser();
         context.testUser = user;
         new SignUpPage()

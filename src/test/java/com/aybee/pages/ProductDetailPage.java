@@ -340,6 +340,10 @@ public class ProductDetailPage extends BasePage {
     public void verifyProductMatchesAssignedScenario(ScenarioContext ctx) {
         SoftAssert sa = new ScreenshotSoftAssert();
         waitUntilLoaded();
+        // Wait for the product to actually RENDER (title text populated + main image loaded) and
+        // scroll it into view, so any failure screenshot shows the real product page — not a
+        // half-painted page where only product-title is present in the DOM.
+        waitForProductRendered();
         String displayedTitle = getText(productTitle).trim();
         System.out.println("[ProductDetail] Displayed product title: " + displayedTitle);
 
@@ -357,7 +361,10 @@ public class ProductDetailPage extends BasePage {
             sa.fail("[ProductDetail] Cannot verify scenario — no Scenario A/B snapshot stored "
                 + "during shop setup (capture pending). Displayed title: " + displayedTitle);
             sa.assertAll();
-            return;
+            // Isolate: the assigned scenario is unknown, so the downstream buy-now / slider /
+            // question steps would run against the wrong product and cascade failures. Stop here.
+            throw new IllegalStateException("[ProductDetail] Assigned scenario could not be resolved "
+                + "(displayed title: " + displayedTitle + ") — halting scenario to avoid cascade.");
         }
 
         System.out.println("[ProductDetail] Assigned scenario resolved: " + ctx.currentScenario
@@ -412,6 +419,38 @@ public class ProductDetailPage extends BasePage {
     // Whitespace-normalised, lower-cased form for full-name comparison.
     private static String norm(String s) {
         return s == null ? "" : s.trim().replaceAll("\\s+", " ").toLowerCase();
+    }
+
+    // Waits until the product is visually rendered — title text populated AND a visible main-picture
+    // image has fully loaded (naturalWidth > 0, so the screenshot shows the real product) — then
+    // scrolls the title into view. Best-effort: it never throws, so verification still proceeds (and
+    // captures its own screenshot) even if rendering is slow.
+    private void waitForProductRendered() {
+        try {
+            new WebDriverWait(driver, 20).until(d -> {
+                try {
+                    String t = getText(productTitle).trim();
+                    if (t.isEmpty()) return false;
+                    for (WebElement el : d.findElements(mainPicture)) {
+                        if (!el.isDisplayed()) continue;
+                        List<WebElement> imgs = el.findElements(By.tagName("img"));
+                        if (imgs.isEmpty()) continue;
+                        String src = imgs.get(0).getAttribute("src");
+                        Object nw = ((org.openqa.selenium.JavascriptExecutor) d)
+                                .executeScript("return arguments[0].naturalWidth;", imgs.get(0));
+                        long natural = (nw instanceof Number) ? ((Number) nw).longValue() : 0;
+                        if (src != null && !src.trim().isEmpty() && natural > 0) return true;
+                    }
+                    return false;
+                } catch (Exception e) {
+                    return false;
+                }
+            });
+        } catch (Exception slowRender) {
+            System.out.println("[ProductDetail] Product image did not fully render within 20s — "
+                + "proceeding to verify (screenshot may be partial)");
+        }
+        try { scrollToCenter(driver.findElement(productTitle)); } catch (Exception ignored) {}
     }
 
     // Returns the src of the first VISIBLE main_picture <img> with a non-empty src (the detail page

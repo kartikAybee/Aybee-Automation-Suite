@@ -36,18 +36,18 @@ public class ResetPasswordPage extends BasePage {
 
     @Step("Click Save New Password")
     public void clickSave() {
-        // Blur the confirm field so Bubble's reactive validation enables the button. Then trigger
-        // the button with a real mouse hover + click (Actions) — a plain click was leaving the save
-        // un-fired; the hover primes Bubble's handler. JS click is the last-resort fallback.
+        // Blur the confirm field so Bubble's reactive validation enables the button, then move the
+        // mouse onto the button (hover primes Bubble's handler) and force the click via JS — a plain
+        // click was leaving the save un-fired (the id sits on an element Bubble doesn't treat as a
+        // native button). Used for both the mismatch save and the successful save.
         blurActiveElement();
         WebElement btn = new WebDriverWait(driver, 15)
                 .until(ExpectedConditions.presenceOfElementLocated(saveButton));
         ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block:'center'});", btn);
         try {
-            new Actions(driver).moveToElement(btn).click().perform();
-        } catch (Exception e) {
-            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", btn);
-        }
+            new Actions(driver).moveToElement(btn).perform();   // hover to prime Bubble's handler
+        } catch (Exception ignored) {}
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", btn);  // forceful click
     }
 
     public boolean isLoaded() {

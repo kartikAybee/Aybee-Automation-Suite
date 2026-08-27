@@ -52,12 +52,20 @@ public class MailosaurHelper {
     }
 
     public Message waitForEmailWithSubject(String emailId, String subject) {
+        return waitForEmailWithSubject(emailId, subject, 0L);
+    }
+
+    // receivedAfterMillis > 0 restricts the search to emails received after that instant, so a
+    // freshly-requested email (e.g. a new password-reset link) is returned instead of an older,
+    // possibly already-used one still sitting in a reused mailbox — Mailosaur waits for it to arrive.
+    public Message waitForEmailWithSubject(String emailId, String subject, long receivedAfterMillis) {
         try {
             MailosaurClient mailosaur = new MailosaurClient(API_KEY);
 
             MessageSearchParams params = new MessageSearchParams();
             params.withServer(SERVER_ID);
             params.withTimeout(60000);
+            if (receivedAfterMillis > 0) params.withReceivedAfter(receivedAfterMillis);
 
             SearchCriteria criteria = new SearchCriteria();
             criteria.withSentTo(emailId);
@@ -149,9 +157,11 @@ public class MailosaurHelper {
                 + "\nHTML body: " + (message.html() != null ? message.html().body() : "null"));
     }
 
-    // Three-layer extraction for reset-password URL.
-    public String getResetPasswordUrlForEmail(String email) {
-        Message message = waitForEmailWithSubject(email, "Forgot your password? Happens.");
+    // Three-layer extraction for reset-password URL. receivedAfterMillis (the moment Send Reset Link
+    // was clicked) ensures we fetch the NEW link, never a stale/already-used one from the reused
+    // mailbox — always pass it for forgot-password flows so a fresh URL is requested each time.
+    public String getResetPasswordUrlForEmail(String email, long receivedAfterMillis) {
+        Message message = waitForEmailWithSubject(email, "Forgot your password? Happens.", receivedAfterMillis);
         List<Link> links = message.html() != null ? message.html().links() : null;
 
         if (links != null) {

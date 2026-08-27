@@ -49,6 +49,14 @@ public class TeamPage extends BasePage {
     public String copyInviteLinkAndRead() {
         wait.until(ExpectedConditions.elementToBeClickable(copyLinkButton));
         dismissToastIfPresent();
+
+        // Clear the clipboard BEFORE copying — otherwise a stale URL from a previous copy (this
+        // flow runs across several scenarios) could be read back if this copy doesn't land in time.
+        // With it blanked first, a failed copy yields an empty read that fails loudly, never an old URL.
+        ((JavascriptExecutor) driver).executeAsyncScript(
+                "var done = arguments[arguments.length - 1];" +
+                "navigator.clipboard.writeText('').then(done).catch(function() { done(null); });");
+
         click(copyLinkButton);
 
         // Wait for Bubble.io's "Copied" confirmation toast — natural sync point for the

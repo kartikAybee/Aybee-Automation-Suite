@@ -186,7 +186,13 @@ public class FormQuestionsPage extends BasePage {
 
     @Step("Enter question text for question {index}")
     public FormQuestionsPage enterQuestionText(int index, String text) {
-        WebElement input = scrollTo(By.id(index + "-questionInput"));
+        By inputLoc = By.id(index + "-questionInput");
+        // The question card loads asynchronously — make sure it's expanded and the input is actually
+        // interactable before typing, or sendKeys can hit a not-yet-ready field.
+        expandIfCollapsed(index);
+        scrollTo(inputLoc);
+        WebElement input = new WebDriverWait(driver, 30)
+            .until(ExpectedConditions.elementToBeClickable(inputLoc));
         input.clear();
         input.sendKeys(text);
         String actual = input.getAttribute("value");
@@ -202,7 +208,11 @@ public class FormQuestionsPage extends BasePage {
     // Dropdown is a native <select>; values include literal quote characters per DOM.
     @Step("Select question type '{typeValue}' for question {index}")
     public FormQuestionsPage selectQuestionType(int index, String typeValue) {
-        WebElement select = scrollTo(By.id("dp_type_of_question_form_page_" + index));
+        By loc = By.id("dp_type_of_question_form_page_" + index);
+        scrollTo(loc);
+        // Wait until the type dropdown has actually rendered before setting it (the card loads async).
+        WebElement select = new WebDriverWait(driver, 30)
+            .until(ExpectedConditions.visibilityOfElementLocated(loc));
         ((JavascriptExecutor) driver).executeScript(
             "arguments[0].value = arguments[1];" +
             "arguments[0].dispatchEvent(new Event('change', {bubbles: true}));",
@@ -228,7 +238,11 @@ public class FormQuestionsPage extends BasePage {
     // asynchronously, so we wait for size > 1 before proceeding.
     @Step("Select 'A/B test product' show type for question {index} and wait for reference dropdown to render")
     public FormQuestionsPage selectShowAbTestProductAndWait(int index) {
-        WebElement select = scrollTo(By.id("dp_show_participants_form_question_" + index));
+        By showLoc = By.id("dp_show_participants_form_question_" + index);
+        scrollTo(showLoc);
+        // Wait until the show-to-participants dropdown has rendered before selecting (card loads async).
+        WebElement select = new WebDriverWait(driver, 30)
+            .until(ExpectedConditions.visibilityOfElementLocated(showLoc));
         ((JavascriptExecutor) driver).executeScript(
             "arguments[0].value = arguments[1];" +
             "arguments[0].dispatchEvent(new Event('change', {bubbles: true}));",

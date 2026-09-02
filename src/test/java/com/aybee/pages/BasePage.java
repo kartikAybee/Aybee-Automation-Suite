@@ -107,12 +107,20 @@ public abstract class BasePage {
 
     // Retries on StaleElementReferenceException — Bubble.io re-renders the DOM reactively,
     // which can invalidate a found element before the click fires.
+    // Waits (up to 30s) for the element to be VISIBLE and then INTERACTABLE/clickable before
+    // returning it — Bubble.io renders form/preview elements slowly, so acting on mere presence
+    // (or too short a wait) causes not-interactable / not-clickable failures.
+    protected WebElement waitVisibleAndClickable(By locator) {
+        new WebDriverWait(driver, 30).until(ExpectedConditions.visibilityOfElementLocated(locator));
+        return new WebDriverWait(driver, 30).until(ExpectedConditions.elementToBeClickable(locator));
+    }
+
     protected void click(By locator) {
         DiagnosticsCollector.recordAction("click: " + locator);
         int attempts = 0;
         while (attempts < 3) {
             try {
-                wait.until(ExpectedConditions.elementToBeClickable(locator)).click();
+                waitVisibleAndClickable(locator).click();
                 return;
             } catch (StaleElementReferenceException e) {
                 attempts++;
@@ -121,10 +129,12 @@ public abstract class BasePage {
     }
 
     // JS click bypasses elementToBeClickable — used for Bubble.io Text elements with
-    // width:0px (blur targets) and elements obscured by overlapping Bubble.io containers.
+    // width:0px (blur targets) and elements obscured by overlapping Bubble.io containers, where
+    // a visibility/clickable check would wrongly fail — so this waits for presence only (30s).
     protected void jsClick(By locator) {
         DiagnosticsCollector.recordAction("jsClick: " + locator);
-        WebElement el = wait.until(ExpectedConditions.presenceOfElementLocated(locator));
+        WebElement el = new WebDriverWait(driver, 30)
+                .until(ExpectedConditions.presenceOfElementLocated(locator));
         ((JavascriptExecutor) driver).executeScript("arguments[0].click();", el);
     }
 
@@ -147,7 +157,7 @@ public abstract class BasePage {
         int attempts = 0;
         while (attempts < 3) {
             try {
-                WebElement el = wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
+                WebElement el = waitVisibleAndClickable(locator);
                 el.clear();
                 if (text != null && !text.isEmpty()) {
                     el.sendKeys(text);
@@ -223,7 +233,7 @@ public abstract class BasePage {
     // passes — JS click dispatches the event directly on the element, bypassing that gap.
     protected void clickWhenEnabled(By locator) {
         DiagnosticsCollector.recordAction("clickWhenEnabled: " + locator);
-        new WebDriverWait(driver, 15).until(d -> isButtonEnabled(locator));
+        new WebDriverWait(driver, 30).until(d -> isButtonEnabled(locator));
         int attempts = 0;
         while (attempts < 3) {
             try {

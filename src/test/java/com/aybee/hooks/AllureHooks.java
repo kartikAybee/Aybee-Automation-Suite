@@ -6,6 +6,7 @@ import com.aybee.driver.DriverManager;
 import com.aybee.utils.DiagnosticsCollector;
 import com.aybee.utils.JamManager;
 import io.cucumber.java.After;
+import io.cucumber.java.AfterStep;
 import io.cucumber.java.Before;
 import io.cucumber.java.Scenario;
 import io.qameta.allure.Allure;
@@ -38,6 +39,21 @@ public class AllureHooks {
         GlobalTestState.restoreInto(context);
     }
 
+    // Capture the screenshot the instant a step fails — BEFORE the next step runs and navigates the
+    // page away. This runs after every step and only fires when that step just failed, so the
+    // screenshot always shows the actual failing page (the teardown screenshot was too late and
+    // frequently captured the wrong/next page). Soft-assert failures are captured separately, at
+    // fail-time, by ScreenshotSoftAssert.
+    @AfterStep
+    public void screenshotOnStepFailure(Scenario scenario) {
+        if (!scenario.isFailed()) return;
+        try {
+            byte[] screenshot = ((TakesScreenshot) DriverManager.getDriver())
+                    .getScreenshotAs(OutputType.BYTES);
+            Allure.addAttachment("Failure Screenshot", new ByteArrayInputStream(screenshot));
+        } catch (Exception ignored) {}
+    }
+
     @After
     public void tearDown(Scenario scenario) {
         // Persist context state so the next feature file's scenario can read it.
@@ -51,12 +67,9 @@ public class AllureHooks {
         }
 
         if (scenario.isFailed() || softFailure != null) {
-            try {
-                byte[] screenshot = ((TakesScreenshot) DriverManager.getDriver())
-                        .getScreenshotAs(OutputType.BYTES);
-                Allure.addAttachment("Failure Screenshot", new ByteArrayInputStream(screenshot));
-            } catch (Exception ignored) {}
-
+            // No teardown screenshot here — it fired too late and captured the wrong (next) page.
+            // Hard-step failures are captured inline by @AfterStep above; soft-assert failures by
+            // ScreenshotSoftAssert at fail-time. Keep diagnostics + Jam, which belong at teardown.
             String pageUrl = "";
             try { pageUrl = DriverManager.getDriver().getCurrentUrl(); } catch (Exception ignored) {}
             String diagnostics = DiagnosticsCollector.collectAndFormat(DriverManager.getDriver());

@@ -49,7 +49,8 @@ public class ExperimentSettingsPage extends BasePage {
         click(titleText);
         clickWhenEnabled(continueButton);
         // btn-add-bq-1 appearing confirms the AI generated the first business question.
-        wait.until(ExpectedConditions.visibilityOfElementLocated(addBqButton));
+        // 30s — the AI generation can take a while before the button shows.
+        new WebDriverWait(driver, 30).until(ExpectedConditions.visibilityOfElementLocated(addBqButton));
         return this;
     }
 
